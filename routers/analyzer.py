@@ -1,16 +1,11 @@
 
-import logging
-import importlib
-import os
-import inspect
-import time
-from datetime import date
+
 import enum
 import re
 from dataclasses import dataclass
 import hashlib
 #
-from routers.parsing.interface_parser import ParserInterface, ParseParams, ParserInterfaceReturns, APost
+from routers.parsing.interface_parser import APost
 from models.data.post import Post
 from routers.text_analyze_tools import check_text_on_keywords, lematize_words
 
@@ -20,9 +15,11 @@ class KeyWordsAnalyzeMode(enum.Enum):
 
 @dataclass
 class AnalyzerParams:
+    task_id: int
+    target_id: int =  0
     hashtags: list[str] = None #
     clear_words: list[str] = None #
-    forbidden_words: list[str] = None#
+    forbidden_words: list[str] = None #
     key_words: list[str] = None #
     key_words_mode: KeyWordsAnalyzeMode = KeyWordsAnalyzeMode.Or  #
     post_start_date: int = 0 #
@@ -78,7 +75,7 @@ def check_hashtags(hashtags_str, hashtags: list[str]) -> bool:
     return res
 
 
-def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APost]:
+async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APost]:
     '''
     Выбираем из спарсеного массива постов те, которые соответсвют заданным критериям задачи
     '''
@@ -137,7 +134,7 @@ def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APost]:
         # Проверяем текст на уникальность по хэшу
         hash = hashlib.md5(posts[i].text.encode('utf-8'))
         hash_str = hash.hexdigest()
-        post_ex = Post.get_post(text_hash=hash_str)
+        post_ex = Post.get_post(task_id=params.task_id, source_id=params.target_id, text_hash=hash_str)
         if post_ex != None:
             continue
         posts[i].text_hash = hash_str

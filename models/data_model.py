@@ -11,6 +11,8 @@ import importlib
 import inspect
 #
 import models.dm_config as dm_config
+from models.data.user import User
+from models.data.parser import Parser
 
 class Errors(enum.Enum):
     NoError = 0
@@ -61,15 +63,34 @@ def create_data_model():
             except Exception as ex:
                 print(f'Ошибка создания модели данных. Причина {ex}')
 
-
-
+def create_admin():
+    adm_vk_token = 'vk1.a.91iecxcqhaZpqlRZ5aSZPvTJa9LmJbYPNCUkefQgipRIBZBmNoFVFOCNndqcrfchsa1a0Cj0mo0pQVMyW5Gt-nEoxnvvgBaVnbh3Z7du_enxoTlC0zPKmvpw0D1tOHzA9oTwwp3KG0jElf5VV6DL78NEmCafwO-ZzwuXEg3C4TAd8PM3A1dPZ2uNFfnHkOk-synIYGhT52OhG-exMjjXxQ'
+    # Создаем пользователя
+    users = User.select().where(User.tg_user_id == 0)
+    try:
+        user = users[0]
+    except Exception as ex:
+        user = User.create(tg_user_id=0, username='superadmin', firstname='', lastname='', first_visit=0, last_visit=0,
+                              permissions='super', balance=99999999)
+        user.save()
+    # Создаем парсер
+    parsers = Parser.select().where(Parser.name == 'service_parser' and Parser.platform == 'ВКонтакте')
+    try:
+        parser = parsers[0]
+    except Exception as ex:
+        parser = Parser.create(name='service_parser', platform='ВКонтакте', user=user, img='', file='',
+                                description='', token=adm_vk_token, public=0)
+        parser.save()
 
 if not isfile(dm_config.DB_FILE_PATH):
     try:
         create_data_model()
+        create_admin()
     except Exception as ex:
         print(f'Создать базу данных не удалось. Причина: {ex}')
 else:
     create_data_model()
+    create_admin()
+
 
 

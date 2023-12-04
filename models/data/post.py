@@ -11,7 +11,6 @@ class Post(Model):
     old_views = IntegerField()
     likes = IntegerField(index=True)
     dt = DateTimeField(index=True)
-    in_telegraph = IntegerField()
     telegraph_url = CharField()
     text_hash = TextField(index=True)
     parse_task = ForeignKeyField(ParseTask, backref='posts', null=True)
@@ -22,7 +21,7 @@ class Post(Model):
         database = db
 
     @classmethod
-    def get_post(cls, post_id: int = 0, source_id: int = 0, text_hash: str = '', text_id: int = 0):
+    def get_post(cls, post_id: int = 0, task_id: int = 0, source_id: int = 0, text_hash: str = '', text_id: int = 0):
         try:
             queryes = []
             if post_id != 0:
@@ -33,6 +32,8 @@ class Post(Model):
                 queryes.append(cls.text_hash == text_hash)
             if text_id != 0:
                 queryes.append(cls.text == text_id)
+            if task_id != 0:
+                queryes.append(cls.parse_task == task_id)
             el = cls.get(*queryes)
             return el
         except Exception as ex:
@@ -41,3 +42,4 @@ class Post(Model):
     def increase_post_views(self):
         self.views += 1
         self.save()
+

@@ -1,3 +1,5 @@
+import asyncio
+
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState, OutdatedIntent
 from aiogram_dialog import setup_dialogs
@@ -11,7 +13,7 @@ from routers.bots.errors import BotErrors
 from routers.bots.exceptions import on_unknown_state, on_outdated_intent
 from routers.bots.loger import bots_loger
 from routers.bots.bots_utills import get_tg_user_names
-from routers.bots.states import SG_start_menu
+from routers.bots.telegram.states import SG_start_menu
 
 # models
 from models.data.user_bot import User_Bot
@@ -22,16 +24,23 @@ current_bots = []
 
 
 class BotExt(Bot):
-    def __init__(self, token: str, parse_mode: str, active: int, *routers: Router):
+    def __init__(self, token: str, parse_mode: str, active: int, public: int, *routers: Router):
+        self.name = ''
+        self.url = ''
+        self.tg_id = 0
         self.active = active
+        self.public = public
         self.storage: MemoryStorage = MemoryStorage()
+        self.status = BotErrors.NoError
+        self.polling_process = None
         try:
             self.bot = super().__init__(token=token, parse_mode=parse_mode)
             #self.bot = super(BotExt, self).__init__(token=token, parse_mode=parse_mode)
             #self.bot = Bot(token=token, parse_mode=parse_mode)
         except Exception as ex:
             bots_loger.error(f'Не удалось подключить бот {token}: Ошибка: {ex}')
-            return BotErrors.MainBotCreateError
+            self.status = BotErrors.MainBotCreateError
+            return
         dp: Dispatcher = Dispatcher(storage=self.storage)
         # Создаем роутер для диалогов
         self.dialog_router = Router()
@@ -61,12 +70,12 @@ class BotExt(Bot):
         async def proc_start_command(message: Message, bot: Bot, dialog_manager: DialogManager):
             # Проверяем зарегистрирован ли пользователь
             try:
-                # await message.answer(GREETINGS['поискать'], reply_markup=ReplyKeyboardRemove())
+                #await message.answer('Доступен', reply_markup=ReplyKeyboardRemove())
                 user_id = message.from_user.id
                 username, firstname, lastname = get_tg_user_names(message.from_user)
                 # Получаем бота из базы
                 bot_obj = BotModel.get_obj(bot.token)
-                if type(bot_obj) is not Bot:
+                if type(bot_obj) is not BotModel:
                     bots_loger.critical(f'Не удалось обновить информацию о боте: {bot.token}')
                 # Проверяем пользователя
                 user = User_Bot.check_user(bot_obj, user_id, username, firstname, lastname)
@@ -82,7 +91,7 @@ class BotExt(Bot):
                     bot_info = await bot.get_me()
                     bot_url = bot_info.username
                     bot_name = bot_info.full_name
-                    bot_obj = bot_obj.refresh_bot_info(name=bot_name, url=bot_url)
+                    bot_obj = bot_obj.refresh_bot_info(name=bot_name, url=bot_url, tg_id=bot_info.id)
                 except Exception as ex:
                     pass
                 # Выводим стартовое меню
@@ -120,4 +129,36 @@ class BotExt(Bot):
         # logger.error(f'Сработало исключение: неизвестный замысел: {event.exception}!')
         # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
         pass
+
+    async def start_polling(self):
+        # Запускаем прослушивание бота
+        try:
+            self.status = BotErrors.InWork
+            await self.dispatcher.start_polling(self)
+        except Exception as ex:
+            self.status = BotErrors.Broken
+            print(f'Ошибка в работе бота {self.name} смотрите логи!')
+            bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
+
+    async def start_polling_task(self):
+        # Запускаем прослушивание бота
+        try:
+            self.status = BotErrors.InWork
+            self.polling_process = asyncio.create_task(self.start_polling(), name=self.name)
+            #await self.dispatcher.start_polling(self)
+        except Exception as ex:
+            self.status = BotErrors.Broken
+            print(f'Ошибка в работе бота {self.name} смотрите логи!')
+            bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
+
+    async def stop_polling(self):
+        # Останавливает прослушивание бота
+        try:
+            self.status = BotErrors.Stopped
+            await self.dispatcher.stop_polling()
+        except Exception as ex:
+            self.status = BotErrors.Broken
+            print(f'Ошибка в работе бота {self.name} смотрите логи!')
+            bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
+        return self.status.value
 

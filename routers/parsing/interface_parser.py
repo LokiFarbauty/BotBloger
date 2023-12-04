@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+import aiohttp
 import enum
 
 
@@ -38,17 +39,17 @@ class ParserInterface(ABC):
 
     @classmethod
     @abstractmethod
-    def parse(cls, params: ParseParams):
+    async def parse(cls, params: ParseParams, session: aiohttp.ClientSession = None):
         return ParserInterfaceReturns.Not_defined
 
     @classmethod
     @abstractmethod
-    def get_entries_count(cls, params: ParseParams):
+    async def get_entries_count(cls, params: ParseParams):
         return ParserInterfaceReturns.Not_defined
 
     @classmethod
     @abstractmethod
-    def parse_archive(cls, params: ParseParams):
+    async def parse_archive(cls, params: ParseParams):
         return ParserInterfaceReturns.Not_defined
 
 

@@ -8,8 +8,8 @@ class Poll(Model):
     question = TextField()
     answers = TextField()
     options = TextField()
-    is_anonymous = BooleanField()
-    allows_multiple_answers = BooleanField()
+    anonymous = BooleanField()
+    multiple = BooleanField()
 
     class Meta:
         database = db

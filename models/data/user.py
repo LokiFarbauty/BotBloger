@@ -15,7 +15,7 @@ class User(Model):
     last_visit = DateTimeField()
     #last_post_read = ForeignKeyField(Post, backref='user', null=True)
     #last_hashtag_read = ForeignKeyField(Hashtag, backref='user', null=True)
-    permissions = TextField()
+    permissions = TextField(null=True)
     balance = FloatField()
 
     class Meta:

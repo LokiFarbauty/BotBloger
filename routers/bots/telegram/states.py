@@ -4,6 +4,9 @@ from aiogram.fsm.state import State, StatesGroup
 class SG_start_menu(StatesGroup):
     start = State()
 
+class SG_enter_token_menu(StatesGroup):
+    start = State()
+
 class SG_nothing(StatesGroup):
     start = State()
 

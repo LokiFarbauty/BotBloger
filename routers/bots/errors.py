@@ -1,5 +1,8 @@
 import enum
 
 class BotErrors(enum.Enum):
-    NoError = 0
-    MainBotCreateError = 1
+    NoError = 'ошибок нет, не запущен'
+    MainBotCreateError = 'ошибка создания бота'
+    InWork = 'работает'
+    Stopped = 'остановлен'
+    Broken = 'сломался'

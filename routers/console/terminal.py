@@ -11,7 +11,7 @@ import asyncio
 from routers.console.terminal_interface import Commands, TerminalErrors
 from models.terminal_commands import commands as model_commands
 from routers.terminal_commands import commands as parsing_commands
-
+from routers.bots.terminal_commands import commands as bot_commands
 
 
 err_no_parametrs='не указаны требуемые параметры'
@@ -28,6 +28,7 @@ async def console(args):
                     commands = Commands()
                     commands.extend_funcs(*model_commands)
                     commands.extend_funcs(*parsing_commands)
+                    commands.extend_funcs(*bot_commands)
                     pass
                 except Exception as ex:
                     print(f'Ошибка загрузки терминала: {ex}')
@@ -52,6 +53,8 @@ async def console(args):
             command = command.strip()
             if command=='exit':
                 os._exit(0)
+            elif command=='test':
+                pass
             elif command=='help' or command == '?':
                 try:
                     help=commands.help()
@@ -61,9 +64,11 @@ async def console(args):
             else:
                 if commands.command_exist(command):
                     try:
-                        res = commands.exec(command, args)
+                        res = await commands.exec(command, args)
                         if type(res) is not TerminalErrors:
                             try:
+                                if type(res) is str:
+                                    raise
                                 object_iterator = iter(res)
                                 for el in res:
                                     print(el)

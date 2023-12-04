@@ -6,7 +6,7 @@ from models.data.post import Post
 class Link(Model):
     owner = ForeignKeyField(Post, backref='links', index=True)
     url = TextField()
-    caption = TextField()
+    description = TextField()
     title = TextField()
     class Meta:
         database = db

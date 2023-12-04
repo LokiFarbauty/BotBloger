@@ -14,13 +14,14 @@ class Command():
         self.args_num = args_num
         self.help = help
 
-    def exec(self, args):
+    async def exec(self, args):
         try:
-            ln = len(*args)
+            #ln = len(*args)
+            ln = len(args)
         except:
             ln = 0
         if ln>=self.args_num:
-            return self.func(*args)
+            return await self.func(*args)
         else:
             return TerminalErrors.PoorlyArgs
 
@@ -52,10 +53,10 @@ class Commands():
             res = f'{res}{com.name} - {com.help}\n'
         return res
 
-    def exec(self, name, *args):
+    async def exec(self, name, *args):
         if self.command_exist(name):
             com = self.get_command(name)
-            res = com.exec(*args)
+            res = await com.exec(*args)
             return res
         else:
             return TerminalErrors.CommandNotFound

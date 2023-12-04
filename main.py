@@ -9,32 +9,51 @@ from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState, OutdatedI
 from aiogram_dialog import setup_dialogs
 from aiogram_dialog import DialogManager, StartMode
 from datetime import datetime
-#
+
+# не удалять
 import models.data_model
 
 # routers
 from routers.console import terminal
 from routers.logers import app_loger
-from routers.bots.bots import BotExt, current_bots
+from routers.bots.telegram.bots import BotExt
 from routers.dispatcher import parsing_dispatcher
+import routers.bots.telegram.bots as bots_unit
 
 # models
 from models.data_model import get_elements
 from models.data.bot import Bot as BotModel
 
+#
+from routers.bots.errors import BotErrors
+
+# dialogs
+from views.telegram.dialogs.dlg_start import dialog_start_menu
 
 
 
 
 
-def init_bots():
+
+async def init_bots():
     # Получаем список ботов из базы
     mbots = get_elements(BotModel)
     bots = []
     for mbot in mbots:
         # Настраиваем бота
         try:
-            bot = BotExt(mbot.token, mbot.parse_mode, mbot.active)
+            bot = BotExt(mbot.token, mbot.parse_mode, mbot.active, mbot.public, dialog_start_menu)
+            # проверяем работоспособность ботов
+            try:
+                bot_info = await bot.get_me()
+                # обновляем информацию о боте
+                mbot.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id)
+                bot.name = bot_info.first_name
+                bot.url = bot_info.username
+                bot.tg_id = bot_info.id
+            except Exception as ex:
+                app_loger.warning(f'Установить связь с ботом {mbot.name} не удалось. Ошибка: {ex}')
+                continue
             if type(bot) is BotExt:
                 bots.append(bot)
             else:
@@ -139,27 +158,66 @@ async def main():
 
 
 # global
+async def task_void():
+    # блокировка на некоторое время
+    while True:
+        await asyncio.sleep(0.0001)
 
+async def test_task():
+    # блокировка на некоторое время
+    i = 0
+    while True:
+        i += 1
+        print(i)
+        await asyncio.sleep(1)
+
+async def amain():
+    tasks = []
+    tasks.append(task_void())
+    # Создаем задачу терминала
+    # tasks.append(terminal.console({}))
+    con_task = asyncio.create_task(terminal.console({}), name='Terminal')
+    #
+    #t_task = asyncio.create_task(test_task(), name='Test')
+    # Создаем ботов
+    cr_bots = await init_bots()
+    bots_unit.current_bots = cr_bots
+    for i, bot in enumerate(bots_unit.current_bots, 0):
+        #tasks.append(start_polling(bot))
+        if bot.active == 1:
+            #tasks.append(bot.start_polling())
+            try:
+                bots_unit.current_bots[i].polling_process = asyncio.create_task(bot.start_polling(), name=bot.name)
+                bots_unit.current_bots[i].status = BotErrors.InWork
+            except Exception as ex:
+                bots_unit.current_bots[i].status = BotErrors.Broken
+                app_loger.warning(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
+        else:
+            bots_unit.current_bots[i].status = BotErrors.Stopped
+    #
+    # Запускаем бесконечные задачи
+    await asyncio.gather(*tasks)
 
 if __name__ == '__main__':
     try:
         # Создаем диспетчер парсеров
-
         # Создаем ботов
-        current_bots = init_bots()
+        # current_bots = init_bots()
         # Запускаем вспомагательные задачи
-        loop = asyncio.get_event_loop()
-        tasks = [
-            loop.create_task(terminal.console({}))
-        ]
-        # Запускаем боты
-        for bot in current_bots:
-            tasks.append(loop.create_task(start_polling(bot)))
-        #
-        loop.run_until_complete(asyncio.wait(tasks))
-        loop.close()
+        # Вариант 1
+        # loop = asyncio.get_event_loop()
+        # tasks = [
+        #     loop.create_task(terminal.console({}))
+        # ]
+        # # Запускаем боты
+        # for bot in current_bots:
+        #     tasks.append(loop.create_task(start_polling(bot)))
+        # #
+        # loop.run_until_complete(asyncio.wait(tasks))
+        # loop.close()
+        # Вариант 2
+        asyncio.run(amain())
         print('Приложение завершено.')
-        #asyncio.run(main())
         pass
     except (KeyboardInterrupt, SystemExit):
         #logger.info('App stopped!')
