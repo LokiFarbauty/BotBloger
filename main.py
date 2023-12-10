@@ -12,12 +12,15 @@ from datetime import datetime
 
 # не удалять
 import models.data_model
+import views.web.flask.server
+import views.telegram.dialogs_dispatcher
+from routers.dispatcher import parsing_dispatcher
+#
 
 # routers
 from routers.console import terminal
 from routers.logers import app_loger
 from routers.bots.telegram.bots import BotExt
-from routers.dispatcher import parsing_dispatcher
 import routers.bots.telegram.bots as bots_unit
 
 # models
@@ -28,7 +31,10 @@ from models.data.bot import Bot as BotModel
 from routers.bots.errors import BotErrors
 
 # dialogs
-from views.telegram.dialogs.dlg_start import dialog_start_menu
+#from views.telegram.dialogs.dlg_start import dialog_start_menu
+
+# views
+from views.telegram.dialogs_dispatcher import bot_dialogs
 
 
 
@@ -42,7 +48,7 @@ async def init_bots():
     for mbot in mbots:
         # Настраиваем бота
         try:
-            bot = BotExt(mbot.token, mbot.parse_mode, mbot.active, mbot.public, dialog_start_menu)
+            bot = BotExt(mbot.token, mbot.parse_mode, mbot.active, mbot.public, *bot_dialogs)
             # проверяем работоспособность ботов
             try:
                 bot_info = await bot.get_me()

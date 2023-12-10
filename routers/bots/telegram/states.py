@@ -6,6 +6,10 @@ class SG_start_menu(StatesGroup):
 
 class SG_enter_token_menu(StatesGroup):
     start = State()
+    where_token = State()
+    why_token = State()
+    token_got = State()
+    get_user_id = State()
 
 class SG_nothing(StatesGroup):
     start = State()

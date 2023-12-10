@@ -13,7 +13,7 @@ from routers.bots.errors import BotErrors
 from routers.bots.exceptions import on_unknown_state, on_outdated_intent
 from routers.bots.loger import bots_loger
 from routers.bots.bots_utills import get_tg_user_names
-from routers.bots.telegram.states import SG_start_menu
+from routers.bots.telegram.states import SG_enter_token_menu as start_dialog
 
 # models
 from models.data.user_bot import User_Bot
@@ -95,7 +95,7 @@ class BotExt(Bot):
                 except Exception as ex:
                     pass
                 # Выводим стартовое меню
-                await dialog_manager.start(SG_start_menu.start, mode=StartMode.RESET_STACK, data={'user': user})
+                await dialog_manager.start(start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
 
             except Exception as ex:
                 bots_loger.error(f"CommandStart(): {ex}")

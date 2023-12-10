@@ -13,11 +13,12 @@ class Bot(Model):
     tg_id = IntegerField()
     active = BooleanField()
     public = BooleanField()  # доступен ли бот для всех, ели нет то доступ будет только у пользователя
+    db_file = TextField()
     class Meta:
         database = db
 
     @classmethod
-    def make(cls, user: User, token, parse_mode: str, name: str, url: str, active: int, public: int, tg_id: int):
+    def make(cls, user: User, token, parse_mode: str, name: str, url: str, active: int, public: int, tg_id: int, db_file: str):
         # Проверяем есть ли уже такой бот
         bot = cls.select().where(cls.token==token)
         try:
@@ -25,7 +26,7 @@ class Bot(Model):
             return element
         except Exception as ex:
             # Если нет то создаем
-            element = cls.create(user=user, token=token, parse_mode=parse_mode, name=name, url=url, active=active, public=public, tg_id=tg_id)
+            element = cls.create(user=user, token=token, parse_mode=parse_mode, name=name, url=url, active=active, public=public, tg_id=tg_id, db_file=db_file)
             element.save()
             return element
 

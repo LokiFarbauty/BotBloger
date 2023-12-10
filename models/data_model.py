@@ -74,12 +74,13 @@ def create_admin():
                               permissions='super', balance=99999999)
         user.save()
     # Создаем парсер
-    parsers = Parser.select().where(Parser.name == 'service_parser' and Parser.platform == 'ВКонтакте')
+    parsers = Parser.select().where(Parser.name == 'service_parser', Parser.platform == 'ВКонтакте')
     try:
         parser = parsers[0]
+        print(parser.name)
     except Exception as ex:
         parser = Parser.create(name='service_parser', platform='ВКонтакте', user=user, img='', file='',
-                                description='', token=adm_vk_token, public=0)
+                                description='', token=adm_vk_token, public=0, cr_dt=0)
         parser.save()
 
 if not isfile(dm_config.DB_FILE_PATH):

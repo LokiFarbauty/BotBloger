@@ -13,6 +13,7 @@ class Post(Model):
     dt = DateTimeField(index=True)
     telegraph_url = CharField()
     text_hash = TextField(index=True)
+    text_len = IntegerField(index=True)
     parse_task = ForeignKeyField(ParseTask, backref='posts', null=True)
     published = BooleanField()
     last_published_dt = DateTimeField(index=True)

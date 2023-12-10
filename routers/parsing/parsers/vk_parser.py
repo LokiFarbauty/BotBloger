@@ -40,6 +40,7 @@ class Parser(ParserInterface):
         result = await cls.normalize_data(json_data, params)
         return result
 
+
     @classmethod
     async def get_entries_count(cls, params: ParseParams):
         res = 0
@@ -475,10 +476,14 @@ class Parser(ParserInterface):
                 res = await page.json()
             try:
                 vk_group_id = res['response']['object_id']
-                return vk_group_id
+                return int(vk_group_id)
             except:
+                try:
+                    err_str = res['error']['error_msg']
+                    return err_str
+                except Exception as ex:
+                    return None
                 # Если ошибка пробуем с резервным токеном
-                continue
         return None
 
     @classmethod

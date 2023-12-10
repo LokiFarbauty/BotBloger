@@ -5,12 +5,19 @@ from models.data.bot import Bot
 from models.data.user import User
 from models.data.parser import Parser
 from models.data_model import get_elements
+from models import dm_config
+
 
 # routers
 from routers.console.terminal_interface import Command
 from routers.dispatcher import parsing_dispatcher
+import routers.bots.telegram.bots as bots_unit
+from routers.logers import app_loger
+from routers.bots.telegram import bots
 
 
+# views
+from views.telegram.dialogs_dispatcher import bot_dialogs
 
 commands = []
 
@@ -43,11 +50,31 @@ async def create_test_bot(user_id: int = 0):
         if user_id != 0:
             user = User.get_user(user_tg_id = user_id)
             if user==None:
+                app_loger.warning(f'При создании тестового бота не найден пользователь.')
                 return f'Пользователь {user_id} не найден'
         else:
             user = await get_test_user()
-        element = Bot.make(user=user, token=test_token, parse_mode='HTML', name='', url='', active=1, public=1, tg_id=0)
+        element = Bot.make(user=user, token=test_token, parse_mode='HTML', name='', url='', active=1, public=1, tg_id=0, db_file=dm_config.DB_FILE_PATH)
         element.save()
+        # Запускаем бот
+        try:
+            bot = bots.BotExt(test_token, 'HTML', 1, 1, *bot_dialogs)
+            bots_unit.current_bots.append(bot)
+            try:
+                bot_info = await bot.get_me()
+                # обновляем информацию о боте
+                element.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id)
+                bot.name = bot_info.first_name
+                bot.url = bot_info.username
+                bot.tg_id = bot_info.id
+            except Exception as ex:
+                app_loger.warning(f'Установить связь с ботом {element.name} не удалось. Ошибка: {ex}')
+            try:
+                await bot.start_polling_task()
+            except Exception as ex:
+                app_loger.warning(f'Запустить бот {element.name} не удалось. Ошибка: {ex}')
+        except Exception as ex:
+            app_loger.error(f'Ошибка create_test_bot: {ex}')
         return element
 
 commands.append(
@@ -65,7 +92,7 @@ async def create_admin():
                               permissions='super', balance=100000000)
         user.save()
     # Создаем парсер
-    parsers = Parser.select().where(Parser.name == 'service_parser' and Parser.platform == 'ВКонтакте')
+    parsers = Parser.select().where(Parser.name == 'service_parser', Parser.platform == 'ВКонтакте')
     try:
         parser = parsers[0]
     except Exception as ex:
