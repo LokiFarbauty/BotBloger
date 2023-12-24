@@ -40,6 +40,23 @@ class Bot(Model):
         except Exception as ex:
             return None
 
+    @classmethod
+    def get_bot(cls, key=0, name='', url='', tg_id=0):
+        try:
+            queryes = []
+            if key != 0:
+                queryes.append(cls.id == key)
+            if name != '':
+                queryes.append(cls.name == name)
+            if url != '':
+                queryes.append(cls.url == url)
+            if tg_id != 0:
+                queryes.append(cls.tg_id == tg_id)
+            bot = cls.get(*queryes)
+            return bot
+        except Exception as ex:
+            return None
+
     def refresh_bot_info(self, name: str, url: str, tg_id: int):
         try:
             self.name = name

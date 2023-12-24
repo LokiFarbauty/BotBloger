@@ -532,6 +532,7 @@ class Parser(ParserInterface):
                 res={}
                 res['first_name'] = user_info['response'][0]['first_name']
                 res['last_name'] = user_info['response'][0]['last_name']
+                res['full_name'] = res['first_name'] + ' ' + res['last_name']
                 return res
             except:
                 continue

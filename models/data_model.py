@@ -77,7 +77,7 @@ def create_admin():
     parsers = Parser.select().where(Parser.name == 'service_parser', Parser.platform == 'ВКонтакте')
     try:
         parser = parsers[0]
-        print(parser.name)
+        #print(f'Сервисный парсер ({parser.name}) загружен.')
     except Exception as ex:
         parser = Parser.create(name='service_parser', platform='ВКонтакте', user=user, img='', file='',
                                 description='', token=adm_vk_token, public=0, cr_dt=0)

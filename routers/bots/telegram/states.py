@@ -1,15 +1,23 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
-class SG_start_menu(StatesGroup):
-    start = State()
-
 class SG_enter_token_menu(StatesGroup):
     start = State()
     where_token = State()
     why_token = State()
     token_got = State()
     get_user_id = State()
+
+class SG_bot_config(StatesGroup):
+    show_menu = State()
+    create_assign_vk = State()  # создание синхронизации
+    choose_filter = State()  # выбор фильтра
+    create_assign_tg = State()  # создание синхронизации
+    delete_assign = State()  # удаление синхронизации
+    show_group_list = State()
+    support = State()
+    check_status = State()
+
 
 class SG_nothing(StatesGroup):
     start = State()

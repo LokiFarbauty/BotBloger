@@ -45,6 +45,7 @@ async def init_bots():
     # Получаем список ботов из базы
     mbots = get_elements(BotModel)
     bots = []
+    bots_names = []
     for mbot in mbots:
         # Настраиваем бота
         try:
@@ -66,10 +67,13 @@ async def init_bots():
                 print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {bot}')
                 app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {bot}')
                 continue
+            bots_names.append(bot.name)
         except Exception as ex:
             print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
             app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
             continue
+    app_loger.info(f'Количество ботов в базе: {len(bots)}')
+    print(f'Количество ботов в базе: {len(bots)}')
     return bots
 
 async def start_polling(bot: BotExt):
@@ -197,6 +201,7 @@ async def amain():
                 bots_unit.current_bots[i].status = BotErrors.InWork
             except Exception as ex:
                 bots_unit.current_bots[i].status = BotErrors.Broken
+                print(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
                 app_loger.warning(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
         else:
             bots_unit.current_bots[i].status = BotErrors.Stopped

@@ -17,6 +17,7 @@ from routers.bots.telegram import states
 from models.data.parser import Parser
 from models.data.user import User
 from datetime import datetime
+import routers.bots.telegram.states as states
 
 
 async def get_user_id(user_name, token):
@@ -55,8 +56,10 @@ async def getter_start_menu(**_kwargs):
         user = User.get_user(user_key=user.id)
         parser = Parser.get_parser(user=user)
         if parser != None:
-            # Выводим статус и статистику.
-            await bot.send_message(event_chat.id, parser.name)
+            # Парсер уже создан выводим меню управления.
+            # await bot.send_message(event_chat.id, parser.name)
+            await dm.start(states.SG_bot_config.show_menu, mode=StartMode.RESET_STACK, data={'user': user})
+            return
     except:
         user_name = ''
     return {

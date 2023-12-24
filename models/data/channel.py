@@ -11,11 +11,28 @@ class ChannelTypes(enum.Enum):
     Info = 3
 
 class Channel(Model):
+    channel_tg_id = IntegerField()
     user = ForeignKeyField(User, backref='users', index=True)
-    id = IntegerField()
     type = IntegerField()
     name = TextField()
     url = TextField()
 
     class Meta:
         database = db
+
+    @classmethod
+    def get_channel(cls, user=0, name='', url='', channel_id=0):
+        try:
+            queryes = []
+            if user != 0:
+                queryes.append(cls.user == user)
+            if name != '':
+                queryes.append(cls.name == name)
+            if url != '':
+                queryes.append(cls.url == url)
+            if channel_id != 0:
+                queryes.append(cls.channel_tg_id == channel_id)
+            publicator = cls.get(*queryes)
+            return publicator
+        except Exception as ex:
+            return None

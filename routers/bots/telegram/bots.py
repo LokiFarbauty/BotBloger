@@ -120,7 +120,7 @@ class BotExt(Bot):
                 username, firstname, lastname = get_tg_user_names(message.from_user)
                 user = User_Bot.check_user(bot.token, user_id, username, firstname, lastname)
                 # Выводим диалог
-                await dialog_manager.start(SG_start_menu.start, mode=StartMode.RESET_STACK, data={'user': user})
+                await dialog_manager.start(start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
             except Exception as ex:
                 bots_loger.error(f"F.text: {ex}")
 
