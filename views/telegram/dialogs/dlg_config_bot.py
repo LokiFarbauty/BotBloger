@@ -52,6 +52,7 @@ async def get_channel(channel_id, channel_name, user: User):
 async def tg_channel_handler(message: Message, message_input: MessageInput,
                        dialog_manager: DialogManager):
     msg_txt = message.text
+    user_id = message.from_user.id
     if message.forward_from_chat != None:
         try:
             now_dt = datetime.now().replace(microsecond=0)
@@ -62,6 +63,9 @@ async def tg_channel_handler(message: Message, message_input: MessageInput,
                 bot_key = 0
             chat_name = message.forward_from_chat.full_name
             chat_id = message.forward_from_chat.id
+            # Получаем пользователя
+            user = User.get_user(user_tg_id=message.from_user.id)
+            #ww
             dialog_manager.dialog_data['chat_name'] = chat_name
             dialog_manager.dialog_data['chat_id'] = chat_id
             vk_user_name = dialog_manager.dialog_data['vk_user_name']
@@ -71,7 +75,6 @@ async def tg_channel_handler(message: Message, message_input: MessageInput,
             group_index = int(dialog_manager.dialog_data["group_index"])
             group_name = group_names[group_index]
             group_id = group_ids[group_index]
-            user = User.get_user(user_tg_id=message.from_user.id)
             parser_info = Parser.get_parser(user=user)
             # Получаем программу парсинга
             parse_program =  await get_parse_programm('vk_sync')
@@ -84,19 +87,21 @@ async def tg_channel_handler(message: Message, message_input: MessageInput,
                                           filter=filter, cr_dt=now_dt, active=1)
                 parse_task.save()
             # Создаем публикатор
-            publicator = Publicator.get_publicator(channel_id=chat_id)
+            channel = await get_channel(channel_id=chat_id, channel_name=chat_name, user=user)
+            publicator = Publicator.get_publicator(channel_id=channel, user=user)
             if publicator == None:
-                channel = await get_channel(channel_id=chat_id, channel_name=chat_name, user=user)
                 publicator = Publicator.create(name=task_name, img='', channel=channel, user=user, parse_task=parse_task, period=30,
                                                mode=PublicatorModes.New.value, range=0, bot=bot_key)
                 publicator.save()
             await message.answer(
-                f'Телеграм-канал <b>"{chat_name}"</b> ({chat_id}) успешно синхронизирован с ВК <b>"{group_name}"</b>.',
+                f'✅ Телеграм-канал <b>"{chat_name}"</b> ({chat_id}) успешно синхронизирован с ВК <b>"{group_name}"</b>.',
                 parse_mode='html')
             await dialog_manager.done()
             #await dialog_manager.start(state=states.SG_bot_config.show_menu, data=dialog_manager.dialog_data)
         except Exception as ex:
-            dialogs_loger.error(f'Ошибка tg_channel_handler: {ex}')
+            dialogs_loger.error(f'Ошибка у пользователя tg_id: {user_id} в getter_start_menu: {ex}')
+            await message.answer(f'❌ При создании синхронизации произошла ошибка, обратитесь к администратору.')
+            await dialog_manager.done()
     else:
         await message.answer('Я получил сообщение, но это не репост из Вашего канала. '
                        'Пожалуйста перешлите боту любое <b>текстовое</b> сообщение из канала, который необходимо синхронизировать с ВК.', parse_mode='html')
@@ -109,7 +114,7 @@ async def getter_dlg_bot_config(**_kwargs):
         user_id = event_from_user.id
     except Exception as ex:
         user_id = 0
-        bots_loger.error(f'Ошибка getter_start_menu: {ex}')
+        dialogs_loger.error(f'Ошибка у пользователя tg_id: {user_id} в getter_dlg_bot_config: {ex}')
     return {
         "greeting": GREETINGS['настройка бота'],
         "user_id": user_id,
@@ -162,7 +167,8 @@ async def getter_dlg_create_assign_vk(**_kwargs):
                     group_names.append(group_name)
             except:
                 groups = []
-                await bot.send_message(user_id, 'Группы ВК, которые вы администрируете не обнаружены.')
+                await bot.send_message(user_id, '⚠️ Группы ВК, которые вы администрируете, не обнаружены.')
+                await dm.done()
             pass
         else:
             return 'Парсер не найден'
@@ -170,18 +176,91 @@ async def getter_dlg_create_assign_vk(**_kwargs):
             products.append((gr_name, i))
         dm.dialog_data['group_names'] = group_names
         dm.dialog_data['group_ids'] = groups
+        greeting = GREETINGS['выбрать группу ВК']
+        try:
+            await bot.delete_message(user_id, tmp_msg.message_id)
+        except:
+            pass
     except Exception as ex:
         user_id = 0
-        bots_loger.error(f'Ошибка getter_start_menu: {ex}')
+        greeting = '❌ При загрузке данных из ВК произошла ошибка, обратитесь к администратору.'
+        dialogs_loger.error(f'Ошибка у пользователя tg_id: {user_id} в getter_dlg_create_assign_vk: {ex}')
+        await bot.send_message(user_id, f'❌ При загрузке данных из ВК произошла ошибка, обратитесь к администратору.')
+        await dm.done()
+    return {
+        "greeting": greeting,
+        "user_id": user_id,
+        "products": products,
+        }
+
+async def getter_dlg_delete_assign_choose(**_kwargs):
+    products = []
+    assigns = []
+    greeting = '❌ При загрузке данных о синхронизациях произошла ошибка, обратитесь к администратору.'
+    try:
+        dm = _kwargs['dialog_manager']
+        dm.dialog_data['vk_user_name'] = 'None'
+        bot = _kwargs['bot']
+        event_from_user = _kwargs['event_from_user']
+        user = dm.start_data['user']
+        user_id = event_from_user.id
+        # Формируем список созданных синхронизаций
+        tmp_msg = await bot.send_message(user_id, 'Получаю данные, подождите....')
+        # Получаем пользователя
+        user = User.get_user(user_key=user.id)
+        # Получаем список его синхронизаций
+        publicators = Publicator.select().where(Publicator.user==user)
+        for i, publicator in enumerate(publicators, 1):
+            products.append((publicator.name, i))
+            assigns.append(publicator.name)
+        dm.dialog_data['assigns'] = assigns
+        if len(assigns)>0:
+            greeting = GREETINGS['выбрать синхронизацию']
+        else:
+            greeting = '⚠️ Синхронизации отсутствуют.'
+    except Exception as ex:
+        user_id = 0
+        dialogs_loger.error(f'Ошибка у пользователя tg_id: {user_id} в getter_dlg_delete_assign_choose: {ex}')
+        await bot.send_message(user_id, f'❌ При загрузке данных о синхронизациях произошла ошибка, обратитесь к администратору.')
+        await dm.done()
     try:
         await bot.delete_message(user_id, tmp_msg.message_id)
     except:
         pass
     return {
-        "greeting": GREETINGS['выбрать группу ВК'],
+        "greeting": greeting,
         "user_id": user_id,
         "products": products,
         }
+
+async def getter_dlg_delete_assign(**_kwargs):
+    try:
+        dialog_manager = _kwargs['dialog_manager']
+        bot = _kwargs['bot']
+        event_from_user = _kwargs['event_from_user']
+        user_id = event_from_user.id
+        assigns = dialog_manager.dialog_data['assigns']
+        assign_index = int(dialog_manager.dialog_data["assign_index"])
+        assign_name = assigns[assign_index]
+        # Удаляем из базы публикатор и задачу
+        # Получаем задачу
+        publicator = Publicator.get_publicator(name=assign_name)
+        if publicator != None:
+            task = publicator.parse_task
+            publicator.delete_instance()
+            task.delete_instance()
+        else:
+            raise ValueError(f"Не найден публикатор {assign_name}")
+        #
+        greeting = f'✅ Синхронизация {assign_name} успешно удалена.'
+    except Exception as ex:
+       greeting = '❌ При удалении синхронизации произошла ошибка, обратитесь к администратору.'
+       dialogs_loger.error(f'Ошибка у пользователя tg_id: {user_id} в getter_dlg_delete_assign: {ex}')
+       await bot.send_message(user_id,
+                              f'❌ При загрузке данных о синхронизациях произошла ошибка, обратитесь к администратору.')
+       await dialog_manager.done()
+    return {
+        "greeting": greeting}
 
 async def getter_dlg_create_assign_tg(**_kwargs):
     products = []
@@ -205,16 +284,23 @@ async def on_product_changed(callback: ChatEvent, select: Any,
     manager.dialog_data["group_index"] = int(item_id) - 1
     await manager.next()
 
+async def on_product_delete(callback: ChatEvent, select: Any,
+                         manager: DialogManager,
+                         item_id: str):
+    manager.dialog_data["assign_index"] = int(item_id) - 1
+    await manager.next()
+
 async def on_filter_changed(callback: ChatEvent, select: Any,
                          manager: DialogManager,
                          item_id: str):
     manager.dialog_data["filter"] = item_id
     await manager.next()
 
-async def event_choose_vk_product(callback: CallbackQuery, button: Button,
+async def event_to_start(callback: CallbackQuery, button: Button,
                     dialog_manager: DialogManager):
     '''Событие нажатия на кнопку - Назад (возврат в предидущее окно)'''
-    await dialog_manager.back()
+    await dialog_manager.switch_to(states.SG_bot_config.show_menu)
+
 
 dialog_bot_config = Dialog(
     Window(
@@ -240,7 +326,6 @@ dialog_bot_config = Dialog(
             height=5,
             id="scroll_with_pager",
         ),
-        #Button(text=Const(BUTTONS['выбрать']), id='btn_check', on_click=event_choose_vk_product),
         BTN_BACK_WINDOW,
         getter=getter_dlg_create_assign_vk,
         state=states.SG_bot_config.create_assign_vk,
@@ -254,7 +339,6 @@ dialog_bot_config = Dialog(
             id="w_filter",
             on_click=on_filter_changed,
         ),
-        #Button(text=Const(BUTTONS['выбрать']), id='btn_check', on_click=event_choose_vk_product),
         BTN_BACK_WINDOW,
         getter=getter_dlg_choose_filter,
         state=states.SG_bot_config.choose_filter,
@@ -265,5 +349,29 @@ dialog_bot_config = Dialog(
         BTN_BACK_WINDOW,
         getter=getter_dlg_create_assign_tg,
         state=states.SG_bot_config.create_assign_tg,
+    ),
+    Window(
+        Format('{greeting}'),
+        ScrollingGroup(
+            Select(
+                Format("{item[0]}"),
+                items="products",
+                item_id_getter=itemgetter(1),
+                id="w_products",
+                on_click=on_product_delete,
+            ),
+            width=1,
+            height=5,
+            id="scroll_with_pager",
+        ),
+        #BTN_BACK_WINDOW,
+        Button(text=Const('🔙 Назад'),id='btn_start_window',on_click=event_to_start),
+        getter=getter_dlg_delete_assign_choose,
+        state=states.SG_bot_config.delete_assign,
+    ),
+    Window(
+        Format('{greeting}'),
+        getter=getter_dlg_delete_assign,
+        state=states.SG_bot_config.delete_assign_execute,
     ),
 )

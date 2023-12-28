@@ -14,10 +14,13 @@ from routers.bots.exceptions import on_unknown_state, on_outdated_intent
 from routers.bots.loger import bots_loger
 from routers.bots.bots_utills import get_tg_user_names
 from routers.bots.telegram.states import SG_enter_token_menu as start_dialog
+from routers.bots.telegram.states import SG_bot_config
 
 # models
 from models.data.user_bot import User_Bot
 from models.data.user_bot import Bot as BotModel
+from models.data.parser import Parser
+from models.data.user import User
 
 current_bots = []
 
@@ -94,9 +97,14 @@ class BotExt(Bot):
                     bot_obj = bot_obj.refresh_bot_info(name=bot_name, url=bot_url, tg_id=bot_info.id)
                 except Exception as ex:
                     pass
-                # Выводим стартовое меню
-                await dialog_manager.start(start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
-
+                # Проверяем есть ли у пользователя парсерер
+                user_mld = User.get_user(user_key=user.id)
+                parser = Parser.get_parser(user=user_mld)
+                if parser != None:
+                    # Парсер уже создан выводим меню управления.
+                    await dialog_manager.start(SG_bot_config.show_menu, mode=StartMode.RESET_STACK, data={'user': user})
+                else:
+                    await dialog_manager.start(start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
             except Exception as ex:
                 bots_loger.error(f"CommandStart(): {ex}")
 

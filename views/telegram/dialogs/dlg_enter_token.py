@@ -52,14 +52,6 @@ async def getter_start_menu(**_kwargs):
     try:
         user = dm.start_data['user']
         user_name = f'{user.firstname} {user.lastname}'
-        # Проверяем создан ли для пользователя парсер
-        user = User.get_user(user_key=user.id)
-        parser = Parser.get_parser(user=user)
-        if parser != None:
-            # Парсер уже создан выводим меню управления.
-            # await bot.send_message(event_chat.id, parser.name)
-            await dm.start(states.SG_bot_config.show_menu, mode=StartMode.RESET_STACK, data={'user': user})
-            return
     except:
         user_name = ''
     return {
@@ -83,6 +75,7 @@ async def token_handler(message: Message, message_input: MessageInput,
             end_t_pos = ac_url.find('&', t_pos)
             access_token = ac_url[t_pos+len('access_token='):end_t_pos]
         dialog_manager.dialog_data['access_token'] = access_token
+        #dialog_manager.reset_stack()
         # получаем пользователя
         t_pos = ac_url.find('user_id=')
         if t_pos == -1:

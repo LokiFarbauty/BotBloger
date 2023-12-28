@@ -31,7 +31,7 @@ class Publicator(Model):
         database = db
 
     @classmethod
-    def get_publicator(cls, key=0, name='', channel_id=0):
+    def get_publicator(cls, key=0, name='', channel_id=0, user=0):
         try:
             queryes = []
             if key != 0:
@@ -40,6 +40,8 @@ class Publicator(Model):
                 queryes.append(cls.name == name)
             if channel_id != 0:
                 queryes.append(cls.channel == channel_id)
+            if user != 0:
+                queryes.append(cls.user == user)
             publicator = cls.get(*queryes)
             return publicator
         except Exception as ex:

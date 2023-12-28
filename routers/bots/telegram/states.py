@@ -13,10 +13,12 @@ class SG_bot_config(StatesGroup):
     create_assign_vk = State()  # создание синхронизации
     choose_filter = State()  # выбор фильтра
     create_assign_tg = State()  # создание синхронизации
-    delete_assign = State()  # удаление синхронизации
+    delete_assign = State()  # удаление синхронизации выбор элемента
+    delete_assign_execute = State() # попытка удаления
     show_group_list = State()
     support = State()
     check_status = State()
+
 
 
 class SG_nothing(StatesGroup):
