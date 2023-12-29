@@ -1,3 +1,5 @@
+'''Всякие полезные функции для анализа текстов'''
+
 from gensim.parsing.preprocessing import remove_stopwords
 from gensim.utils import simple_preprocess
 import string

@@ -1,3 +1,5 @@
+'''Вспомогательные утилиты для диалогов. Вроде я их нигде не использую'''
+
 from aiogram_dialog import DialogManager
 
 def get_offset(dialog_manager: DialogManager, data_key: str):

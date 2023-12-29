@@ -1,3 +1,5 @@
+'''Модуль содержит маркеры окон диалогов в телеграм боте, используется в парадигме aiogram-dialog'''
+
 from aiogram.fsm.state import State, StatesGroup
 
 

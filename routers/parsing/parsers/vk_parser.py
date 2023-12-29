@@ -1,3 +1,5 @@
+'''Модуль содержит парсер для ВКонтакте, созданный согласно соглашению взаимодействия ParserInterface'''
+
 from routers.parsing.interface_parser import ParserInterface, ParseParams, ParserInterfaceReturns, APost
 import logging
 from typing import Union

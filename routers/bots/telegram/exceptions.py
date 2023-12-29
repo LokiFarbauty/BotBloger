@@ -1,3 +1,6 @@
+'''Исключения определенные для событий ботов которые нужно отслеживать, автоматически в бот не добавляются.
+Добавлять нужно вручную в роутеры Bots.py'''
+
 from aiogram_dialog import DialogManager, StartMode
 
 # async def on_unknown_intent(event, dialog_manager: DialogManager):

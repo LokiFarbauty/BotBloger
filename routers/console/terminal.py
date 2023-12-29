@@ -1,3 +1,5 @@
+'''Головной модуль терминала'''
+
 import datetime
 import os
 from aioconsole import ainput

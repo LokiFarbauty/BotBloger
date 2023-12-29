@@ -1,9 +1,9 @@
 import aiohttp
 # routers
 from routers.console.terminal_interface import Command
-from routers.dispatcher import parsing_dispatcher
-from routers.parsing.interface_parser import ParserInterface, ParseParams
-from routers.analyzer import analyze_posts, AnalyzerParams
+from routers.parsing.dispatcher import parsing_dispatcher
+from routers.parsing.interface_parser import ParseParams
+from routers.parsing.analyzer import analyze_posts, AnalyzerParams
 #
 from models.saver import save_posts
 from models.data.parse_task import ParseTask

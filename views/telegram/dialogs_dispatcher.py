@@ -1,3 +1,5 @@
+'''Модуль при импорте автоматически подгружает и привязывает к боту все диалоги изпапки dialogs'''
+
 import os
 import importlib
 import inspect

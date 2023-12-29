@@ -10,7 +10,7 @@ from models import dm_config
 
 # routers
 from routers.console.terminal_interface import Command
-from routers.dispatcher import parsing_dispatcher
+from routers.parsing.dispatcher import parsing_dispatcher
 import routers.bots.telegram.bots as bots_unit
 from routers.logers import app_loger
 from routers.bots.telegram import bots

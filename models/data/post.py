@@ -2,6 +2,7 @@ from peewee import *
 #
 from models.dm_config import db
 from models.data.parse_task import ParseTask
+from models.data.parse_program import ParseProgram
 
 class Post(Model):
     post_id = IntegerField()
@@ -15,6 +16,7 @@ class Post(Model):
     text_hash = TextField(index=True)
     text_len = IntegerField(index=True)
     parse_task = ForeignKeyField(ParseTask, backref='posts', null=True)
+    parse_program = ForeignKeyField(ParseProgram, backref='posts', null=True)
     published = BooleanField()
     last_published_dt = DateTimeField(index=True)
 

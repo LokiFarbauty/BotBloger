@@ -1,20 +1,6 @@
 import asyncio
-import logging
-import concurrent.futures as pool
-from time import sleep
-from aiogram import Bot, Dispatcher, F, Router
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.filters import CommandStart, ExceptionTypeFilter
-from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState, OutdatedIntent
-from aiogram_dialog import setup_dialogs
-from aiogram_dialog import DialogManager, StartMode
-from datetime import datetime
 
 # не удалять
-import models.data_model
-import views.web.flask.server
-import views.telegram.dialogs_dispatcher
-from routers.dispatcher import parsing_dispatcher
 #
 
 # routers
@@ -22,68 +8,31 @@ from routers.console import terminal
 from routers.logers import app_loger
 from routers.bots.telegram.bots import BotExt
 import routers.bots.telegram.bots as bots_unit
+from routers.bots.errors import BotErrors
+from routers.bots.telegram.bots import init_bots
 
 # models
-from models.data_model import get_elements
 from models.data.bot import Bot as BotModel
 
 #
-from routers.bots.errors import BotErrors
+
 
 # dialogs
 #from views.telegram.dialogs.dlg_start import dialog_start_menu
 
-# views
-from views.telegram.dialogs_dispatcher import bot_dialogs
 
 
 
 
 
-
-async def init_bots():
-    # Получаем список ботов из базы
-    mbots = get_elements(BotModel)
-    bots = []
-    bots_names = []
-    for mbot in mbots:
-        # Настраиваем бота
-        try:
-            bot = BotExt(mbot.token, mbot.parse_mode, mbot.active, mbot.public, *bot_dialogs)
-            # проверяем работоспособность ботов
-            try:
-                bot_info = await bot.get_me()
-                # обновляем информацию о боте
-                mbot.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id)
-                bot.name = bot_info.first_name
-                bot.url = bot_info.username
-                bot.tg_id = bot_info.id
-            except Exception as ex:
-                app_loger.warning(f'Установить связь с ботом {mbot.name} не удалось. Ошибка: {ex}')
-                continue
-            if type(bot) is BotExt:
-                bots.append(bot)
-            else:
-                print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {bot}')
-                app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {bot}')
-                continue
-            bots_names.append(bot.name)
-        except Exception as ex:
-            print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
-            app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
-            continue
-    app_loger.info(f'Количество ботов в базе: {len(bots)}')
-    print(f'Количество ботов в базе: {len(bots)}')
-    return bots
-
-async def start_polling(bot: BotExt):
-    # Запускаем прослушивание бота
-    try:
-        if bot.active == 1:
-            await bot.dispatcher.start_polling(bot)
-    except Exception as ex:
-        print(f'Ошибка в работе бота смотрите логи!')
-        app_loger.error(f'Ошибка в работе бота: {ex}')
+# async def start_polling(bot: BotExt):
+#     # Запускаем прослушивание бота
+#     try:
+#         if bot.active == 1:
+#             await bot.dispatcher.start_polling(bot)
+#     except Exception as ex:
+#         print(f'Ошибка в работе бота смотрите логи!')
+#         app_loger.error(f'Ошибка в работе бота: {ex}')
 
 
 async def main():

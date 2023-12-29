@@ -1,3 +1,5 @@
+'''Вспомогательные функции для работы с телеграм ботом'''
+
 from aiogram.types import User
 from math import ceil
 

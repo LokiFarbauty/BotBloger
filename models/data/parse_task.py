@@ -1,8 +1,13 @@
 from peewee import *
+import enum
 #
 from models.dm_config import db
 from models.data.parse_program import ParseProgram
 from models.data.parser import Parser
+
+class ParseTaskStates(enum.Enum):
+    Good = 0 # завершено успешно
+    Error = 1 # завершено с ошибкой
 
 class ParseTask(Model):
     name = TextField() # имя задачи
@@ -32,6 +37,8 @@ class ParseTask(Model):
     #task_interval = IntegerField() # периодичность запуска задачи
     post_max_text_length = IntegerField(null=True) # максимальная длинна поста
     post_min_text_length = IntegerField(null=True)  # максимальная длинна поста
+    state = IntegerField()  # Результат последнего запуска задачи
+    error = TextField()  # Последняя ошибка задачи
 
     class Meta:
         database = db  # this model uses the "people.db" database

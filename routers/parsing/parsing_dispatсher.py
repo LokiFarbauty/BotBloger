@@ -79,7 +79,7 @@ class ParserDispatcher:
         self.parsers_name_list = []
         for parser_cl in self.parsers:
             self.parsers_name_list.append(parser_cl.name)
-        info_str = f'Диспетчера парсеров создан. Статус: {self.status.value}. Загружены следующие парсеры: {self.parsers_name_list}'
+        info_str = f'Диспетчер парсеров создан. Статус: {self.status.value}. Загружены следующие парсеры: {self.parsers_name_list}'
         self.logger.info(info_str)
         print(info_str)
 

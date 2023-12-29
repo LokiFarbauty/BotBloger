@@ -1,23 +1,19 @@
-from aiogram.types import CallbackQuery, ContentType, Message, FSInputFile, ReplyKeyboardRemove
-from aiogram import Bot, Dispatcher, F, Router
+from aiogram.types import ContentType, Message
 from aiogram_dialog import (
-    ChatEvent, Dialog, DialogManager, setup_dialogs,
-    ShowMode, StartMode, Window,
+    Dialog, DialogManager, Window,
 )
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Cancel, Button, Row, Select, SwitchTo, Start, Next, Back
-from aiogram_dialog.widgets.text import Const, Format, Multi, ScrollingText
-from routers.bots.lexicon import *
-from routers.parsing.interface_parser import ParseParams
-from routers.dispatcher import parsing_dispatcher
-from routers.bots.loger import bots_loger
-from routers.bots.telegram.states import SG_enter_token_menu
-from routers.bots.telegram import states
+from aiogram_dialog.widgets.kbd import SwitchTo, Start
+from aiogram_dialog.widgets.text import Const, Format
+from views.telegram.lexicon import *
+from routers.parsing.dispatcher import parsing_dispatcher
+from routers.logers import bots_loger
+from views.telegram.states import SG_enter_token_menu
 #
 from models.data.parser import Parser
 from models.data.user import User
 from datetime import datetime
-import routers.bots.telegram.states as states
+import views.telegram.states as states
 
 
 async def get_user_id(user_name, token):

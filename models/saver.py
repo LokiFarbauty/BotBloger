@@ -1,9 +1,13 @@
+'''Этот модуль отвечает за сохранение спарсеной информации в базу'''
+
+
 import enum
 import logging
 #
 from models.data.post_text_FTS import PostText
 from models.data.post import Post
 from models.data.parse_task import ParseTask
+from models.data.parse_program import ParseProgram
 from models.data.hashtag import Hashtag
 from models.data.post_hashtag import Post_Hashtag
 from models.data.photo import Photo
@@ -14,15 +18,19 @@ from models.data.audio import Audio
 from models.data.docs import Doc
 #
 from routers.parsing.interface_parser import APost
+# logers
+from routers.logers import parsers_loger
 
 class SaverErrors(enum.Enum):
     NoError = 'данные успешно сохранены'
     PyError = 'ошибка сохранения данных'
 
-async def save_posts(posts: list[APost], target_id: int, task: ParseTask, logger: logging.Logger = None):
+async def save_posts(posts: list[APost], target_id: int, task: ParseTask, program: ParseProgram):
     '''
     Сохраняем посты в базу
     :param posts:
+    target_id - id источника информации
+    task - задача парсинга
     :return:
     '''
     try:
@@ -34,7 +42,7 @@ async def save_posts(posts: list[APost], target_id: int, task: ParseTask, logger
             post_index_id = post_index.get_id()
             post_obj = Post.create(post_id=post.post_id, source_id=target_id, text=post_index_id, views=0,
                                    old_views=post.views, likes=post.likes, dt=post.dt,
-                                   telegraph_url=tg_url, text_hash=post.text_hash, parse_task=task,
+                                   telegraph_url=tg_url, text_hash=post.text_hash, parse_task=task, parse_program=program,
                                    published=0, last_published_dt=0)
             post_obj.save()
             # Сохраняем хэштеги
@@ -73,6 +81,7 @@ async def save_posts(posts: list[APost], target_id: int, task: ParseTask, logger
                 doc_obj.save()
         return SaverErrors.NoError
     except Exception as ex:
-        if logger != None:
-            logger.error(f'Ошибка в save_posts: {ex}')
+        # if logger != None:
+        #     logger.error(f'Ошибка в save_posts: {ex}')
+        parsers_loger.error(f'save_posts(target_id={target_id}, task={task.get_id()}, program={program.get_id()}): {ex}')
         return SaverErrors.PyError

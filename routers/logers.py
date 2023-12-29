@@ -1,4 +1,5 @@
-'''Этот модуль содержит глобальные объекты - логеры'''
+'''Этот модуль содержит глобальные объекты - логеры для внутренних механник:
+ботов, консоли, парсинга, публикации'''
 
 import logging
 
@@ -12,4 +13,7 @@ def setup_logger(logger_name, log_file, level=logging.INFO, mode = 'w'):
     logger.addHandler(handler)
     return logger
 
-app_loger = setup_logger('AppLoger', 'log.log')
+app_loger = setup_logger('AppLoger', 'log.log') # логер приложения
+bots_loger = setup_logger('BotsLoger', 'bots.log') # логер ботов
+parsers_loger = setup_logger('ParsersLoger', 'parsers.log') # логер парсинга
+publicators_loger = setup_logger('PublicatorsLoger', 'publicators.log') # логер публикаторов

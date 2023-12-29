@@ -14,6 +14,11 @@ class PublicatorModes(enum.Enum):
     Marketing = 3 # режим рекламная компания публиковать самые рейтинговые из диапазона
     New = 4 # публиковать новые
 
+class PublicatorStates(enum.Enum):
+    Stopped = 0 # публикатор остановлен
+    Working = 1 # публикатор работает
+
+
 class Publicator(Model):
     # Программа состоит из нескольких задач
     name = TextField() # имя
@@ -24,7 +29,10 @@ class Publicator(Model):
     parse_task = ForeignKeyField(ParseTask, backref='publicators', index=True, null=True)
     mode = IntegerField() # Режим публикации
     period = IntegerField() # Период публикации
-    range = IntegerField() # Для режима Marketing - диапазон лучших постов из которых выбирать случайнывй
+    range = IntegerField() # Для режима Marketing - диапазон лучших постов из которых выбирать случайный
+    state = IntegerField() # Состояние публикатора
+    error = TextField() # Последняя ошибка публикатора (Причина остановки его работы)
+    last_post_id = IntegerField() # vk_id последнего опубликованного поста
     bot = ForeignKeyField(Bot, backref='publicators', index=True)
 
     class Meta:

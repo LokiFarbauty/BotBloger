@@ -36,3 +36,12 @@ class Channel(Model):
             return publicator
         except Exception as ex:
             return None
+
+    @classmethod
+    def get_channel_or_make(cls, channel_id, channel_name, user: User):
+        channel = Channel.get_channel(channel_id=channel_id, name=channel_name, user=user)
+        if channel == None:
+            channel = Channel.create(name=channel_name, user=user, channel_tg_id=channel_id, url='',
+                                     type=ChannelTypes.Public.value)
+            channel.save()
+        return channel

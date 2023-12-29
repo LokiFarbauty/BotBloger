@@ -1,4 +1,5 @@
-
+'''Модуль отвечает за анализ спарсеных данных в формате APost
+'''
 
 import enum
 import re
@@ -7,7 +8,7 @@ import hashlib
 #
 from routers.parsing.interface_parser import APost
 from models.data.post import Post
-from routers.text_analyze_tools import check_text_on_keywords, lematize_words
+from routers.parsing.text_analyze_tools import check_text_on_keywords, lematize_words
 
 class KeyWordsAnalyzeMode(enum.Enum):
     And = 0

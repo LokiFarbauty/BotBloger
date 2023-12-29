@@ -1,25 +1,21 @@
-from aiogram.types import CallbackQuery, ContentType, Message, FSInputFile, ReplyKeyboardRemove
-from aiogram import Bot, Dispatcher, F, Router
+from aiogram.types import CallbackQuery, ContentType, Message
+from aiogram import Bot
 from aiogram_dialog import (
-    ChatEvent, Dialog, DialogManager, setup_dialogs,
-    ShowMode, StartMode, Window,
+    ChatEvent, Dialog, DialogManager, Window,
 )
 from typing import Any
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Cancel, Button, Row, Select, SwitchTo, Start, Url
-from aiogram_dialog.widgets.text import Const, Format, Multi, ScrollingText
+from aiogram_dialog.widgets.kbd import Button, Select
+from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.widgets.kbd import (
-    CurrentPage, FirstPage, LastPage, Multiselect, NextPage, NumberedPager,
-    PrevPage, Row, ScrollingGroup, StubScroll, SwitchTo,
+    ScrollingGroup, SwitchTo,
 )
 from operator import itemgetter
 from datetime import datetime
 #
-from routers.bots.lexicon import *
-from routers.parsing.interface_parser import ParseParams
-from routers.dispatcher import parsing_dispatcher
-from routers.bots.loger import bots_loger
-import routers.bots.telegram.states as states
+from views.telegram.lexicon import *
+from routers.parsing.dispatcher import parsing_dispatcher
+import views.telegram.states as states
 #
 from views.telegram.common_dlg_elements import BTN_BACK_WINDOW
 #
@@ -29,7 +25,7 @@ from models.data.parse_program import ParseProgram
 from models.data.publicator import Publicator, PublicatorModes
 from models.data.user import User
 from models.data.bot import Bot
-from models.data.channel import Channel, ChannelTypes
+from models.data.channel import Channel
 #
 from views.logers import dialogs_loger
 
@@ -42,12 +38,7 @@ async def get_parse_programm(name):
         parse_program.save()
     return parse_program
 
-async def get_channel(channel_id, channel_name, user: User):
-    channel = Channel.get_channel(channel_id=channel_id, name=channel_name, user=user)
-    if channel == None:
-        channel = Channel.create(name=channel_name, user=user, channel_tg_id=channel_id, url='', type=ChannelTypes.Public.value)
-        channel.save()
-    return channel
+
 
 async def tg_channel_handler(message: Message, message_input: MessageInput,
                        dialog_manager: DialogManager):
@@ -87,10 +78,10 @@ async def tg_channel_handler(message: Message, message_input: MessageInput,
                                           filter=filter, cr_dt=now_dt, active=1)
                 parse_task.save()
             # Создаем публикатор
-            channel = await get_channel(channel_id=chat_id, channel_name=chat_name, user=user)
+            channel = Channel.get_channel_or_make(channel_id=chat_id, channel_name=chat_name, user=user)
             publicator = Publicator.get_publicator(channel_id=channel, user=user)
             if publicator == None:
-                publicator = Publicator.create(name=task_name, img='', channel=channel, user=user, parse_task=parse_task, period=30,
+                publicator = Publicator.create(name=task_name, img='', channel=channel, user=user, parse_task=parse_task, period=60,
                                                mode=PublicatorModes.New.value, range=0, bot=bot_key)
                 publicator.save()
             await message.answer(

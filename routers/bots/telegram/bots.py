@@ -1,3 +1,8 @@
+'''Модуль отвечает за телеграмм-ботов.
+В модуле определяется рассширеный клас бота BotExt, создаются aiogram-роутеры.
+Также модуль содержит функции инициализации и запуска ботов.
+current_bots - список текущих ботов'''
+
 import asyncio
 
 from aiogram import Bot, Dispatcher, F, Router
@@ -5,22 +10,26 @@ from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState, OutdatedI
 from aiogram_dialog import setup_dialogs
 from aiogram.filters import ExceptionTypeFilter, CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 
 # routers
 from routers.bots.errors import BotErrors
-from routers.bots.exceptions import on_unknown_state, on_outdated_intent
-from routers.bots.loger import bots_loger
+from routers.bots.telegram.exceptions import on_unknown_state, on_outdated_intent
+from routers.logers import bots_loger, app_loger
 from routers.bots.bots_utills import get_tg_user_names
-from routers.bots.telegram.states import SG_enter_token_menu as start_dialog
-from routers.bots.telegram.states import SG_bot_config
+from views.telegram.states import SG_enter_token_menu as start_dialog
+from views.telegram.states import SG_bot_config
 
 # models
 from models.data.user_bot import User_Bot
 from models.data.user_bot import Bot as BotModel
 from models.data.parser import Parser
 from models.data.user import User
+from models.data_model import get_elements
+
+# views
+from views.telegram.dialogs_dispatcher import bot_dialogs
 
 current_bots = []
 
@@ -170,3 +179,38 @@ class BotExt(Bot):
             bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
         return self.status.value
 
+
+async def init_bots():
+    # Получаем список ботов из базы
+    mbots = get_elements(BotModel)
+    bots = []
+    bots_names = []
+    for mbot in mbots:
+        # Настраиваем бота
+        try:
+            bot = BotExt(mbot.token, mbot.parse_mode, mbot.active, mbot.public, *bot_dialogs)
+            # проверяем работоспособность ботов
+            try:
+                bot_info = await bot.get_me()
+                # обновляем информацию о боте
+                mbot.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id)
+                bot.name = bot_info.first_name
+                bot.url = bot_info.username
+                bot.tg_id = bot_info.id
+            except Exception as ex:
+                app_loger.warning(f'Установить связь с ботом {mbot.name} не удалось. Ошибка: {ex}')
+                continue
+            if type(bot) is BotExt:
+                bots.append(bot)
+            else:
+                print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {bot}')
+                app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {bot}')
+                continue
+            bots_names.append(bot.name)
+        except Exception as ex:
+            print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
+            app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
+            continue
+    app_loger.info(f'Количество ботов в базе: {len(bots)}')
+    print(f'Количество ботов в базе: {len(bots)}')
+    return bots
