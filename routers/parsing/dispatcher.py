@@ -3,7 +3,7 @@
 Парсеры подгружаются при создании объекта ParserDispatcher и дальше хранятся в нем'''
 
 # routers
-from routers.parsing.parsing_dispatсher import ParserDispatcher
+from routers.parsing.parsing_dispatсher import ParserDispatcher, ASTaskStatus
 from routers.logers import parsers_loger, app_loger
 from routers.parsing.analyzer import analyze_posts, AnalyzerParams
 from routers.parsing.interface_parser import ParserInterface, ParseParams, ParserInterfaceReturns, APost
@@ -26,6 +26,12 @@ INFINITE = 999999999
 
 
 parsing_dispatcher = ParserDispatcher(parsers_loger)
+
+
+
+
+
+
 
 async def refresh_task_state(task: ParseTask, state, error = None):
     try:
@@ -59,6 +65,7 @@ async def get_post_count_in_VK_source(task: ParseTask):
 
 async def parsing(task: ParseTask, show_progress = False):
     state='подготовка'
+    #print('Task started')
     try:
         task.state = ParseTaskStates.InWork.value
         task.error = None

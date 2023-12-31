@@ -9,6 +9,7 @@ from models.saver import save_posts
 from models.data.parse_task import ParseTask
 #
 from routers.logers import app_loger
+from routers.parsing.dispatcher import parsing_dispatcher, parsing
 
 commands = []
 
@@ -107,4 +108,28 @@ async def get_vk_user_group(target_id, filter='', token='test'):
 
 commands.append(
      Command(name='get_vk_user_group', func=get_vk_user_group, args_num=1, help='Возвращает список групп и пабликов ВКонтакте в которых состоит пользователь, при фильтре админ, вернет группы, где он администратор. Параметры: 1 - id пользователя; 2 - фильтр (admin, moder, editor)')
+)
+
+async def get_task_process_status(taskname: str):
+    res = parsing_dispatcher.get_task_status(taskname)
+    return res.value
+
+commands.append(
+     Command(name='get_task_process_status', func=get_task_process_status, args_num=1, help='Возвращает статус процесса задачи. Параметры: 1 - имя задачи')
+)
+
+async def stop_task_process(taskname: str):
+    res = parsing_dispatcher.stop_task(taskname)
+    return res
+
+commands.append(
+     Command(name='stop_task_process', func=stop_task_process, args_num=1, help='Останвливает процесс задачи. Параметры: 1 - имя задачи')
+)
+
+async def start_task_process(taskname: str):
+    res = await parsing_dispatcher.start_task(taskname, parsing)
+    return res
+
+commands.append(
+     Command(name='start_task_process', func=start_task_process, args_num=1, help='Запускает процесс задачи. Параметры: 1 - имя задачи')
 )

@@ -5,6 +5,9 @@ import inspect
 import time
 from datetime import date
 import enum
+import asyncio
+
+from models.data.parse_task import ParseTask, ParseTaskStates
 
 #
 from routers.parsing.interface_parser import ParserInterface
@@ -23,6 +26,11 @@ class ParserDispatcherErrors(enum.Enum):
     NoConfig = 'настройка не выполнена'
     NoParsers = 'парсеры не найдены'
 
+class ASTaskStatus(enum.Enum):
+    Done = 'выполнена'
+    Cancelled = 'остановлена'
+    Active = 'выполняется'
+    NotFound = 'не найдена'
 
 class ParserDispatcher:
     '''Объект диспетчера парсеров'''
@@ -91,3 +99,71 @@ class ParserDispatcher:
             if el.name == name:
                 return el
         return None
+
+    def get_task_process(self, task_name: str):
+        res = None
+        try:
+            for tp in self.tasks:
+                tp_name = tp.get_name()
+                if task_name == tp_name:
+                    res = tp
+        except Exception as ex:
+            res = None
+        return res
+
+    def get_task_status(self, taskname: str):
+        # Получаем статус задачи
+        task_process = self.get_task_process(taskname)
+        if task_process == None:
+            return ASTaskStatus.NotFound
+        if task_process.done():
+            return ASTaskStatus.Done
+        if task_process.cancelled():
+            return ASTaskStatus.Cancelled
+        return ASTaskStatus.Active
+
+    def stop_task(self, taskname: str):
+        # Получаем задачу
+        try:
+            task_status = self.get_task_status(taskname)
+            if task_status == ASTaskStatus.Active:
+                tp = self.get_task_process(taskname)
+                if tp != None:
+                    tp.cancel()
+                    task = ParseTask.get_task(name=taskname)
+                    if task != None:
+                        task.state = ParseTaskStates.Stopped.value
+                        task.save()
+                    return f'Задача "{taskname}" остановлена.'
+                else:
+                    return f'Задача "{taskname}" не найдена.'
+            else:
+                return f'Задача "{taskname}" не была активной.'
+        except Exception as ex:
+            return ex
+
+    async def start_task(self, taskname: str, func):
+        # func - функция парсинга
+        # Получаем задачу
+        try:
+            task = ParseTask.get_task(name=taskname)
+            if task == None:
+                return f'Задача "{taskname}" не найдена в базе.'
+            else:
+                task.state = ParseTaskStates.InWork.value
+                task.save()
+            task_process = self.get_task_process(taskname)
+            if task_process == None:
+                self.tasks.append(asyncio.create_task(func(task), name=taskname))
+                return f'Задача "{taskname}" запущена.'
+            else:
+                task_status = self.get_task_status(taskname)
+                if task_status == ASTaskStatus.Active:
+                    return f'Задача "{taskname}" уже запущена.'
+                else:
+                    self.tasks.remove(task_process)
+                    self.tasks.append(asyncio.create_task(func(task), name=taskname))
+                    return f'Задача "{taskname}" запущена.'
+        except Exception as ex:
+            return f'Запуск задачи "{taskname}" не удался, причина: {ex}'
+

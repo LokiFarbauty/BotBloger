@@ -135,6 +135,7 @@ async def amain():
     #
     tasks = []
     tasks.append(task_void())
+    #
     # Создаем задачу терминала
     # tasks.append(terminal.console({}))
     con_task = asyncio.create_task(terminal.console({}), name='Terminal')
@@ -144,6 +145,7 @@ async def amain():
     cr_bots = await init_bots()
     # Запускаем задачи
     await dispatcher.init_tasks()
+    #
     bots_unit.current_bots = cr_bots
     for i, bot in enumerate(bots_unit.current_bots, 0):
         #tasks.append(start_polling(bot))
