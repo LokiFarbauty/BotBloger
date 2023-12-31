@@ -29,6 +29,9 @@ class ParserDispatcher:
     def __init__(self, logger: logging.Logger):
         '''При создании диспетчера он подгружает все парсеры, найденые в папке из конфига'''
         #
+        # Текущие задачи
+        self.tasks = []
+        #
         self.logger = logger
         self.logger.info('Создание диспетчера парсеров...')
         self.status = ParserDispatcherErrors.Good

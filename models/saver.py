@@ -25,7 +25,7 @@ class SaverErrors(enum.Enum):
     NoError = 'данные успешно сохранены'
     PyError = 'ошибка сохранения данных'
 
-async def save_posts(posts: list[APost], target_id: int, task: ParseTask, program: ParseProgram):
+async def save_posts(posts: list[APost], target_id: int, task: ParseTask, program: ParseProgram = None):
     '''
     Сохраняем посты в базу
     :param posts:
@@ -43,7 +43,7 @@ async def save_posts(posts: list[APost], target_id: int, task: ParseTask, progra
             post_obj = Post.create(post_id=post.post_id, source_id=target_id, text=post_index_id, views=0,
                                    old_views=post.views, likes=post.likes, dt=post.dt,
                                    telegraph_url=tg_url, text_hash=post.text_hash, parse_task=task, parse_program=program,
-                                   published=0, last_published_dt=0)
+                                   published=0, last_published_dt=0, text_len=len(post.text), checked=0)
             post_obj.save()
             # Сохраняем хэштеги
             for hashtag in post.hashtags:
@@ -64,7 +64,7 @@ async def save_posts(posts: list[APost], target_id: int, task: ParseTask, progra
                 link_obj.save()
             # Сохраняем опросы
             for poll in post.polls:
-                poll_obj = Poll.create(owner_id=post_obj, question=poll['question'], answers=poll['answers'], options=poll['options'],
+                poll_obj = Poll.create(owner_id=post_obj, question=poll['question'], answers=poll['answers'],
                                        anonymous=poll['anonymous'], multiple=poll['multiple'])
                 poll_obj.save()
             # Сохраняем видео

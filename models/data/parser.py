@@ -37,3 +37,13 @@ class Parser(Model):
             return el
         except Exception as ex:
             return None
+
+    @classmethod
+    def get_service_parser(cls):
+        try:
+            queryes = []
+            queryes.append(cls.name == 'service_parser')
+            el = cls.get(*queryes)
+            return el
+        except Exception as ex:
+            return None

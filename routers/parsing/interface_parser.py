@@ -22,6 +22,7 @@ class ParseParams:
     target_name: str = '' # имя ресурса
     target_url: str = '' # ссылка на страничку сайта
     target_id: int = 0 # id ресурса
+    target_type: str = 'group' # тип ресурса ВК user, group, ...
     token: str = '' # токен доступа
     login: str = ''  # логин доступа
     password: str = ''  # пароль доступа

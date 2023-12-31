@@ -17,8 +17,9 @@ class Post(Model):
     text_len = IntegerField(index=True)
     parse_task = ForeignKeyField(ParseTask, backref='posts', null=True)
     parse_program = ForeignKeyField(ParseProgram, backref='posts', null=True)
-    published = BooleanField()
-    last_published_dt = DateTimeField(index=True)
+    published = BooleanField() # опубликован или нет пост
+    last_published_dt = DateTimeField(index=True) # дата публикации поста
+    checked = BooleanField() #проверен или нет пост админом
 
     class Meta:
         database = db

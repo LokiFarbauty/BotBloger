@@ -38,7 +38,7 @@ async def vk_parse(target_id=0, token='test'):
         task = ParseTask.create(name='test', last_post_id=0, filter='all', cr_dt=0, active=0)
     params = AnalyzerParams(task_id=task.get_id(), target_id=target_id, min_text_len=10)
     proc_posts = await analyze_posts(parse_res, params)
-    await save_posts(proc_posts, target_id, task=task, logger=app_loger)
+    await save_posts(proc_posts, target_id, task=task)
     #
     res = []
     if proc_posts !=[]:
@@ -72,10 +72,10 @@ async def get_vk_id(target_name, token='test'):
         token = 'vk1.a.fZyiWIVGGg_7sM0euOzteiauES3ZM2DP73QXvWnMaAR2lc7-ww2bms3zWifrqKDTTeUAkW06-sEAiHJLxZwKcTlZaQD-q_EQZatNZOK_XTXp7Y3FVMqi6THV29qM96AIDfNmEMR3Fkg1rNTnObyCqbn9wQmsbWsCBSmYHflU9cOyy-Dc4i1g1QdiWQxmKiPrTu7hicXNU-3TrVvzrLIXSA'
     parser = parsing_dispatcher.get_parser('ВКонтакте')
     if parser != None:
-        res = await parser.get_vk_object_id(target_name, token)
+        id, type = await parser.get_vk_object_id(target_name, token, with_type=True)
     else:
         return 'Парсер не найден'
-    return res
+    return f'id: {id}, type: {type}'
 
 commands.append(
      Command(name='get_vk_id', func=get_vk_id, args_num=1, help='Получить id страницы ВКонтакте. Параметры: 1 - название страницы (в id объекта ВК для сообщества нужно ставить знак "-")')

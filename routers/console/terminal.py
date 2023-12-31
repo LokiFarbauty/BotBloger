@@ -51,7 +51,11 @@ async def console(args):
                 pars = inp[n + 2:]
                 args0=pars.split(',')
                 for el in args0:
-                    args.append(el.strip())
+                    try:
+                        int_el = int(el)
+                        args.append(int_el)
+                    except:
+                        args.append(el.strip())
             command = command.strip()
             if command=='exit':
                 os._exit(0)

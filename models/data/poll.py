@@ -7,7 +7,7 @@ class Poll(Model):
     owner = ForeignKeyField(Post, backref='polls', index=True)
     question = TextField()
     answers = TextField()
-    options = TextField()
+    options = TextField(null=True)
     anonymous = BooleanField()
     multiple = BooleanField()
 

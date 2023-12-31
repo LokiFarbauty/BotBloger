@@ -1,6 +1,7 @@
 import asyncio
 
 # не удалять
+import routers.parsing.dispatcher as dispatcher
 #
 
 # routers
@@ -131,6 +132,7 @@ async def test_task():
         await asyncio.sleep(1)
 
 async def amain():
+    #
     tasks = []
     tasks.append(task_void())
     # Создаем задачу терминала
@@ -140,6 +142,8 @@ async def amain():
     #t_task = asyncio.create_task(test_task(), name='Test')
     # Создаем ботов
     cr_bots = await init_bots()
+    # Запускаем задачи
+    await dispatcher.init_tasks()
     bots_unit.current_bots = cr_bots
     for i, bot in enumerate(bots_unit.current_bots, 0):
         #tasks.append(start_polling(bot))

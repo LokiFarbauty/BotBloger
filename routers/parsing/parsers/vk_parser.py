@@ -11,7 +11,12 @@ import re
 import aiohttp
 import os
 
-VOID_CHAR = '⚡️'
+try:
+    from routers.parsing.parsing_config import VOID_TEXT_CHAR
+    VOID_CHAR = VOID_TEXT_CHAR
+except:
+    VOID_CHAR = ''
+
 MAX_POLL_ANWSER_LEN = 100 # Максимальная длинна строки ответа. Ограничения телеграмм 100
 
 def setup_logger(logger_name, log_file, level=logging.INFO, mode = 'w'):
@@ -33,7 +38,7 @@ class Parser(ParserInterface):
     @classmethod
     async def parse(cls, params: ParseParams, session: aiohttp.ClientSession = None):
         # Полуаем стену из Вконтакте
-        json_data, next_from = await cls.__get_vk_wall(params=params, session=session)
+        json_data, next_from = await cls.get_vk_wall(params=params, session=session)
         if json_data != None:
             pass
         else:
@@ -46,7 +51,7 @@ class Parser(ParserInterface):
     @classmethod
     async def get_entries_count(cls, params: ParseParams):
         res = 0
-        group_info, next_from = await cls.__get_vk_wall(params=params)
+        group_info, next_from = await cls.get_vk_wall(params=params)
         if type(group_info) is not ParserInterfaceReturns:
             try:
                 res = group_info['response']['count']
@@ -59,11 +64,20 @@ class Parser(ParserInterface):
 
 
     @classmethod
-    async def __get_vk_wall(cls, params: ParseParams, session=None):
+    async def get_vk_wall(cls, params: ParseParams, session=None):
         '''
         Получение записей со стены, используя внутренее API ВК
         Возвращает два параметра
         '''
+        try:
+            target_id = int(params.target_id)
+            if params.target_type == 'user':
+                if target_id < 0: target_id = - target_id
+            else:
+                if target_id > 0: target_id = - target_id
+        except:
+            cls.loger.error(f'get_vk_wall. Неправильное значение target_id - {params.target_id}')
+            return ParserInterfaceReturns.GetVKWallError, 0
         try:
             proxie_not_got = True
             proxies = {}
@@ -92,7 +106,7 @@ class Parser(ParserInterface):
                     f'{params.proxy_protocol}': params.proxy_url,
                 }
                 proxy_str = f'{params.proxy_protocol}: params.proxy_url'
-            url = f"https://api.vk.com/method/wall.get?owner_id={params.target_id}&offset={params.offset}&count={params.post_count}&filter={params.filter}&access_token={params.token}&v=5.131"
+            url = f"https://api.vk.com/method/wall.get?owner_id={target_id}&offset={params.offset}&count={params.post_count}&filter={params.filter}&access_token={params.token}&v=5.131"
             ua = UserAgent()
             header = {'User-Agent': str(ua.random)}
             if session == None:
@@ -102,7 +116,7 @@ class Parser(ParserInterface):
                     if req.status != 200:
                         # error = service_func.check_error_code_in_json(req)
                         cls.loger.error(
-                            f'Парсер: VKParser (target_id={params.target_id}, filter={params.filter}) ошибка парсинга:'
+                            f'Парсер: VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга:'
                             f' код requests - {req.status_code}')
                         return ParserInterfaceReturns.GetVKWallError, 0
                     else:
@@ -112,7 +126,7 @@ class Parser(ParserInterface):
                 if req.status != 200:
                     # error = service_func.check_error_code_in_json(req)
                     cls.loger.error(
-                        f'Парсер: VKParser (target_id={params.target_id}, filter={params.filter}) ошибка парсинга:'
+                        f'Парсер: VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга:'
                         f' код requests - {req.status_code}')
                     return ParserInterfaceReturns.GetVKWallError, 0
                 else:
@@ -124,7 +138,7 @@ class Parser(ParserInterface):
             return res, offset
         except Exception as ex:
             cls.loger.error(
-                f'Парсер VKParser (target_id={params.target_id}, filter={params.filter}) ошибка парсинга: {ex}')
+                f'Парсер VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга: {ex}')
             return ParserInterfaceReturns.PyError
 
 
@@ -139,7 +153,12 @@ class Parser(ParserInterface):
         try:
             res = []
             if "response" not in json_data:
-                err_str = f'Ошибка при выполнении normalize_data(task_key={params.target_id}): "в данных нет ключа [response]"'
+                # Пытаемся получить описание ошибки
+                try:
+                    vk_err = json_data['error']['error_msg']
+                except Exception as ex:
+                    vk_err = 'Не определено'
+                err_str = f'Ошибка при выполнении normalize_data(task_key={params.target_id}): "в данных нет ключа [response]". VK_error: {vk_err}'
                 cls.loger.error(err_str)
                 return ParserInterfaceReturns.NormalizeDataError
             # Просматриваем все посты
@@ -213,7 +232,7 @@ class Parser(ParserInterface):
                                                     pass
                                                 poll = {}
                                                 poll['question'] = question
-                                                poll['answer'] = answer_str
+                                                poll['answers'] = answer_str
                                                 poll['anonymous'] = anonymous
                                                 poll['multiple'] = multiple
                                                 post_src.polls.append(poll)
@@ -403,6 +422,8 @@ class Parser(ParserInterface):
     async def __get_hashtags(cls, text: str) -> list:
         pat = re.compile(r"#(\w+)")
         res = pat.findall(text)
+        # Понижаем регистр
+        res = [x.lower() for x in res]
         return res
 
     @classmethod
@@ -462,7 +483,7 @@ class Parser(ParserInterface):
     #         return None
 
     @classmethod
-    async def get_vk_object_id(cls, vk_object_name: str, token: str):
+    async def get_vk_object_id(cls, vk_object_name: str, token: str, with_type = False):
         urls = []
         urls.append(
             f"https://api.vk.com/method/utils.resolveScreenName?screen_name={vk_object_name}&access_token={token}&v=5.131")
@@ -478,11 +499,18 @@ class Parser(ParserInterface):
                 res = await page.json()
             try:
                 vk_group_id = res['response']['object_id']
-                return int(vk_group_id)
+                vk_type = res['response']['type']
+                if with_type:
+                    return int(vk_group_id), vk_type
+                else:
+                    return int(vk_group_id)
             except:
                 try:
                     err_str = res['error']['error_msg']
-                    return err_str
+                    if with_type:
+                        return err_str, 'ошибка'
+                    else:
+                        return err_str
                 except Exception as ex:
                     return None
                 # Если ошибка пробуем с резервным токеном

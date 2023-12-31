@@ -62,9 +62,14 @@ def check_text_on_hashtags(text: str, hashtags: list):
 def lematize_words(words: list[str]) -> list[str]:
     morph = pymorphy3.MorphAnalyzer()
     res=[]
+    if type(words) is str:
+        words = words.replace(', ', ',')
+        words = words.split(',')
+    words = [x.lower() for x in words]
+    words = [x.strip() for x in words]
     for word in words:
         norm_word = morph.parse(word)
-        res.append(norm_word.normal_form)
+        res.append(norm_word[-1].normal_form)
     return res
 
 
