@@ -34,14 +34,14 @@ class ParseTask(Model):
     options = CharField(null=True) # произвольные опции
     cr_dt = DateTimeField() # дата создания задачи
     active = IntegerField()  # флаг автостарта (используется для автозапуска)
-    post_num = IntegerField(null=True) # количество постов, которое необходимо собрать (для ВК)
+    post_num = IntegerField() # количество постов, которое необходимо собрать (для ВК)
     post_start_date = DateTimeField(null=True) # собирать посты от этой даты
     post_end_date = DateTimeField(null=True) # собирать посты до этой даты
     key_words = TextField(null=True) # собирать посты в которые входят данные слова
     forbidden_words = TextField(null=True) # запрещенные слова с которыми пост пропускаем
     clear_words = TextField(null=True) # слова, которые при парсинге нужно вырезать
     hashtags = TextField(null=True) # собирать посты помеченные данными хэштегами
-    period = IntegerField(null=True) # периодичность запуска задачи, 0 - единичное выполнение
+    period = IntegerField() # периодичность запуска задачи, 0 - единичное выполнение
     #task_start_time = DateTimeField() # дата и время запуска задачи на выполнение
     #task_interval = IntegerField() # периодичность запуска задачи
     post_max_text_length = IntegerField(null=True) # максимальная длинна поста
