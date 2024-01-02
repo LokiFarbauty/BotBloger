@@ -138,14 +138,14 @@ async def parsing(task: ParseTask, show_progress = True):
                     # Ничего не спарсили
                     break
                 # Подготовка параметров
-                if task.post_min_text_length==None:
+                if task.criterion.post_min_text_length==None:
                     min_text_len = 0
                 else:
-                    min_text_len = task.post_min_text_length
-                if task.post_max_text_length==None:
+                    min_text_len = task.criterion.post_min_text_length
+                if task.criterion.post_max_text_length==None:
                     max_text_len = PARSE_VK_MAX_TEXT_LEN
                 else:
-                    max_text_len = task.post_min_text_length
+                    max_text_len = task.criterion.post_min_text_length
                 # Проверяем есть ли среди постов last_post_id и отрезаем все, что за ним
                 # У первого спарсеного поста будет максимальный post_id и если он уже ессть в базе то то что за ним точно есть
                 if parsing_mode == ParsingMode.UPDATE_PERIOD or parsing_mode == ParsingMode.UPDATE_SINGLE:
@@ -164,8 +164,8 @@ async def parsing(task: ParseTask, show_progress = True):
                 # Анализ
                 state = 'анализ'
                 anl_params = AnalyzerParams(task_id=task.get_id(), target_id=task.target_id, min_text_len=min_text_len, max_text_len=max_text_len,
-                                        key_words=task.key_words, hashtags=task.hashtags, clear_words=task.clear_words,
-                                        forbidden_words=task.forbidden_words, post_start_date=task.post_start_date, post_end_date=task.post_end_date,
+                                        key_words=task.criterion.key_words, hashtags=task.criterion.hashtags, clear_words=task.criterion.clear_words,
+                                        forbidden_words=task.criterion.forbidden_words, post_start_date=task.criterion.post_start_date, post_end_date=task.criterion.post_end_date,
                                         last_post_id=last_post_id)
                 proc_posts = await analyze_posts(parse_res, anl_params)
                 # if len(proc_posts) == 0:

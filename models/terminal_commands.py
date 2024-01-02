@@ -8,6 +8,7 @@ from models.data.user import User
 from models.data.parser import Parser
 from models.data.parse_program import ParseProgram
 from models.data.parse_task import ParseTask, ParseTaskStates, ParseTaskActive
+from models.data.criterion import Criterion
 from models.data_model import get_elements
 from models import dm_config
 from models.data.post import Post
@@ -212,20 +213,20 @@ async def get_task_params(task_key: int):
     if task != None:
         # Формируем расписание
         try:
-            start_date = datetime.fromtimestamp(task.post_start_date).strftime("%d.%m.%Y")
+            start_date = datetime.fromtimestamp(task.criterion.post_start_date).strftime("%d.%m.%Y")
         except:
             start_date = 'не задана'
         try:
-            end_date = datetime.fromtimestamp(task.post_end_date).strftime("%d.%m.%Y")
+            end_date = datetime.fromtimestamp(task.criterion.post_end_date).strftime("%d.%m.%Y")
         except:
             end_date = 'не задана'
         desc = f'{desc}"{task.name}" (key: {task.get_id()}). ' \
                f'Фильтр: {task.filter}. Количество постов: {task.post_num}. Начальная дата: {start_date} ' \
                f'Конечная дата: {end_date} ' \
-               f'\nКлючевые слова: {task.key_words}.\nЗапрещенные слова: {task.forbidden_words}.\n' \
-               f'Удалять слова: {task.clear_words}.\nХэштеги: {task.hashtags}.\n' \
-               f'Период запуска: {task.period} сек.\nМаксимальная длинная текста: {task.post_max_text_length}.\n' \
-               f'Минимальная длинная текста: {task.post_min_text_length}.'
+               f'\nКлючевые слова: {task.criterion.key_words}.\nЗапрещенные слова: {task.criterion.forbidden_words}.\n' \
+               f'Удалять слова: {task.criterion.clear_words}.\nХэштеги: {task.criterion.hashtags}.\n' \
+               f'Период запуска: {task.period} сек.\nМаксимальная длинная текста: {task.criterion.post_max_text_length}.\n' \
+               f'Минимальная длинная текста: {task.criterion.post_min_text_length}.'
         return desc
     else:
         return f'Задача с ключом {task_key} не найдена.'
@@ -253,7 +254,7 @@ commands.append(
                                                               " Параметры: task_key: int")
 )
 
-async def create_task_parse_arhive(name: str, target_name: str, program_key: int=0,  filter='all'):
+async def create_task(name: str, target_name: str, program_key: int=0,  filter='all'):
     # Указываем сервисного пользователя
     user = 1
     # Проверяем есть ли программа с таким ключем
@@ -271,7 +272,7 @@ async def create_task_parse_arhive(name: str, target_name: str, program_key: int
         try:
             target_id, target_type = await parser.get_vk_object_id(target_name, s_parse_mld.token, with_type=True)
             if type(target_id) is str or target_id == None:
-                return f'Ошибка: {target_id}'
+                return f'Ошибка: найти ресурс "{target_name}" не удалось.'
             # if target_type == 'user':
             #     res = await parser.get_vk_user_info(target_id, s_parse_mld.token)
             # elif target_type == 'group':
@@ -281,10 +282,12 @@ async def create_task_parse_arhive(name: str, target_name: str, program_key: int
             # Создаем задачу
             dt = datetime.now()
             cr_dt = dt.replace(microsecond=0).timestamp()
-            task = ParseTask.create(name=name, user=user, program=program, parser=s_parse_mld, target_id=target_id,
+            criterion = Criterion.create(target_id=target_id,
+                                    target_name=target_name, target_type=target_type)
+            task = ParseTask.create(name=name, user=user, program=program, parser=s_parse_mld, criterion=criterion, target_id=target_id,
                                     target_name=target_name, target_type=target_type, filter=filter,
-                                    cr_dt=cr_dt, post_num=INFINITE, state=ParseTaskStates.Good.value, last_post_id=0,
-                                    active=ParseTaskActive.Stopped.value)
+                                    cr_dt=cr_dt, post_num=INFINITE, state=ParseTaskStates.Stopped.value, last_post_id=0,
+                                    active=ParseTaskActive.Stopped.value, period=0)
             return f'Задача "{name}" создана.'
         except Exception as ex:
             return f'Ошибка: {ex}'
@@ -292,8 +295,7 @@ async def create_task_parse_arhive(name: str, target_name: str, program_key: int
         return 'Парсер не найден.'
 
 commands.append(
-     Command(name='create_task_parse_arhive', func=create_task_parse_arhive, args_num=2, help="Создать задачу для парсинга архива (парсит стену целиком). "
-                                                                                 "Параметры: name: str, target_name: str, program_key: int=0,  filter='all'")
+     Command(name='create_task', func=create_task, args_num=2, help="Создать задачу для парсинга. Параметры: name: str, target_name: str, program_key: int=0,  filter='all'")
 )
 
 async def clear_posts_in_db():

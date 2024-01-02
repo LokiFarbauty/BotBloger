@@ -512,7 +512,7 @@ class Parser(ParserInterface):
                     else:
                         return err_str
                 except Exception as ex:
-                    return None
+                    return None, 'error'
                 # Если ошибка пробуем с резервным токеном
         return None
 

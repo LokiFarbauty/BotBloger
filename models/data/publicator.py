@@ -7,6 +7,7 @@ from models.data.user import User
 from models.data.bot import Bot
 from models.data.parse_program import ParseProgram
 from models.data.parse_task import ParseTask
+from models.data.criterion import Criterion
 
 class PublicatorModes(enum.Enum):
     Single = 1 # публиковать один раз случайный пост
@@ -27,6 +28,7 @@ class Publicator(Model):
     user = ForeignKeyField(User, backref='publicators', index=True)
     parse_program = ForeignKeyField(ParseProgram, backref='publicators', index=True, null=True)
     parse_task = ForeignKeyField(ParseTask, backref='publicators', index=True, null=True)
+    criterion = ForeignKeyField(Criterion, backref='tasks')  # ссылка на критерии выборки
     mode = IntegerField() # Режим публикации
     period = IntegerField() # Период публикации
     range = IntegerField() # Для режима Marketing - диапазон лучших постов из которых выбирать случайный
