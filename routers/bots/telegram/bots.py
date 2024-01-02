@@ -12,6 +12,7 @@ from aiogram.filters import ExceptionTypeFilter, CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
+import enum
 
 # routers
 from routers.bots.errors import BotErrors
@@ -23,7 +24,7 @@ from views.telegram.states import SG_bot_config
 
 # models
 from models.data.user_bot import User_Bot
-from models.data.user_bot import Bot as BotModel
+from models.data.bot import Bot as BotModel
 from models.data.parser import Parser
 from models.data.user import User
 from models.data_model import get_elements
@@ -33,7 +34,12 @@ from views.telegram.dialogs_dispatcher import bot_dialogs
 
 current_bots = []
 
-
+class BotStatus(enum.Enum):
+    NoError = 'ошибок нет, не запущен'
+    MainBotCreateError = 'ошибка создания бота'
+    InWork = 'работает'
+    Stopped = 'остановлен'
+    Broken = 'сломался'
 
 class BotExt(Bot):
     def __init__(self, token: str, parse_mode: str, active: int, public: int, *routers: Router):
@@ -43,7 +49,7 @@ class BotExt(Bot):
         self.active = active
         self.public = public
         self.storage: MemoryStorage = MemoryStorage()
-        self.status = BotErrors.NoError
+        self.status = BotStatus.NoError
         self.polling_process = None
         try:
             self.bot = super().__init__(token=token, parse_mode=parse_mode)
@@ -51,7 +57,7 @@ class BotExt(Bot):
             #self.bot = Bot(token=token, parse_mode=parse_mode)
         except Exception as ex:
             bots_loger.error(f'Не удалось подключить бот {token}: Ошибка: {ex}')
-            self.status = BotErrors.MainBotCreateError
+            self.status = BotStatus.MainBotCreateError
             return
         dp: Dispatcher = Dispatcher(storage=self.storage)
         # Создаем роутер для диалогов
@@ -150,34 +156,41 @@ class BotExt(Bot):
     async def start_polling(self):
         # Запускаем прослушивание бота
         try:
-            self.status = BotErrors.InWork
+            self.status = BotStatus.InWork
             await self.dispatcher.start_polling(self)
         except Exception as ex:
-            self.status = BotErrors.Broken
+            self.status = BotStatus.Broken
             print(f'Ошибка в работе бота {self.name} смотрите логи!')
             bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
 
     async def start_polling_task(self):
         # Запускаем прослушивание бота
         try:
-            self.status = BotErrors.InWork
+            self.status = BotStatus.InWork
             self.polling_process = asyncio.create_task(self.start_polling(), name=self.name)
             #await self.dispatcher.start_polling(self)
         except Exception as ex:
-            self.status = BotErrors.Broken
+            self.status = BotStatus.Broken
             print(f'Ошибка в работе бота {self.name} смотрите логи!')
             bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
 
     async def stop_polling(self):
         # Останавливает прослушивание бота
         try:
-            self.status = BotErrors.Stopped
+            self.status = BotStatus.Stopped
             await self.dispatcher.stop_polling()
         except Exception as ex:
-            self.status = BotErrors.Broken
+            self.status = BotStatus.Broken
             print(f'Ошибка в работе бота {self.name} смотрите логи!')
             bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
         return self.status.value
+
+async def get_BotExt(bot_mld: BotModel)-> BotExt:
+    bot_pr = None
+    for bot in current_bots:
+        if bot.name == bot_mld.name:
+            return bot
+    return bot_pr
 
 
 async def init_bots():
@@ -203,8 +216,8 @@ async def init_bots():
             if type(bot) is BotExt:
                 bots.append(bot)
             else:
-                print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {bot}')
-                app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {bot}')
+                print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: не правильный тип бота')
+                app_loger.error(f'Создать объект бота {mbot.name} нее удалось. не правильный тип бота')
                 continue
             bots_names.append(bot.name)
         except Exception as ex:

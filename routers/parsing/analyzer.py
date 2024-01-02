@@ -30,7 +30,22 @@ class AnalyzerParams:
     min_text_len: int = 700 #
     last_post_id: int = 0 #
     lematize: bool = True
+    video_platform: int = 0 # С каких платформ собирать видео 0 - со всех
 
+
+def check_video_platform(videos: list, video_platform: int)-> list:
+    '''Проверяет пост на соответсвие видеоплатвормы'''
+    new_video=[]
+    if video_platform == 1:
+        cond = 'youtube.com/'
+    elif video_platform == 2:
+        cond = 'vk.com/'
+    else:
+        return new_video
+    for video in videos:
+        if video['url'].find(cond) != -1:
+            new_video.append(video)
+    return new_video
 
 def check_text(text: str, forbidden_words: list[str]) -> bool:
     '''Проверяет текст на наличие запрещенных слов'''
@@ -125,6 +140,13 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
         if params.hashtags != None and params.hashtags != '':
             if not check_hashtags(params.hashtags, post.hashtags):
                 continue
+        # Проверяем соответсвие видеоплатфоме
+        if params.video_platform != None and params.video_platform != 0 and len(post.videos)>0:
+            new_video = check_video_platform(post.videos, params.video_platform)
+            if len(new_video)==0:
+                continue
+            else:
+                post.videos = new_video
         # Если в тексте есть запрещенные слова то пропускаем
         if params.forbidden_words != None:
             if not check_text(post.text, params.forbidden_words):

@@ -34,6 +34,7 @@ class ParseParams:
     proxy_protocol: str = '' # формат "http", "https", "ftp"
 
 
+
 class ParserInterface(ABC):
     name = 'ParserInterface'
     description = ''

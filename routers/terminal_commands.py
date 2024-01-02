@@ -7,9 +7,11 @@ from routers.parsing.analyzer import analyze_posts, AnalyzerParams
 #
 from models.saver import save_posts
 from models.data.parse_task import ParseTask
+from models.data.post import Post
 #
 from routers.logers import app_loger
 from routers.parsing.dispatcher import parsing_dispatcher, parsing
+from routers.publicate.telegraph_tools import put_post_to_telegraph
 
 commands = []
 
@@ -132,4 +134,17 @@ async def start_task_process(taskname: str):
 
 commands.append(
      Command(name='start_task_process', func=start_task_process, args_num=1, help='Запускает процесс задачи. Параметры: 1 - имя задачи')
+)
+
+async def put_post_in_telegraph(post_key: int):
+    try:
+        post = Post.get_by_id(post_key)
+        res = await put_post_to_telegraph(post, telegraph_token='56cbd6664bcc26ea2e247b50805cb2c3c12efc70bbf3d3dd5148ee1a02ad',
+                                          author_name='Loki', author_caption='Благодарим за внимание!', author_url='')
+    except Exception as ex:
+        res = ex
+    return res
+
+commands.append(
+     Command(name='put_post_in_telegraph', func=put_post_in_telegraph, args_num=1, help='Размещает пост в телеграфе. Параметры: 1 - ключ поста')
 )

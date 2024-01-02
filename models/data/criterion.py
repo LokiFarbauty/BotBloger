@@ -1,6 +1,12 @@
 from peewee import *
+import enum
 #
 from models.dm_config import db
+
+class VideoPlatform(enum.Enum):
+    All = 0
+    OnlyYouTube = 1
+    OnlyVK = 2
 
 class Criterion(Model):
     target_id = CharField(null=True) # id цели (для ВК)
@@ -16,6 +22,8 @@ class Criterion(Model):
     post_min_text_length = IntegerField(null=True)  # максимальная длинна поста
     post_start_date = DateTimeField(null=True) # собирать посты от этой даты
     post_end_date = DateTimeField(null=True) # собирать посты до этой даты
+    check_mat = IntegerField(null=True)  # проверять ли на наличие мата
+    video_platform = IntegerField(null=True)  # проверять ли на соответствие видеоплатформе
 
     class Meta:
         database = db  # this model uses the "people.db" database

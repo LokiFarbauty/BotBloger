@@ -18,6 +18,7 @@ class PublicatorModes(enum.Enum):
 class PublicatorStates(enum.Enum):
     Stopped = 0 # публикатор остановлен
     Working = 1 # публикатор работает
+    Stopped_Error = 2 # остановлекн из-за ошибки
 
 
 class Publicator(Model):
@@ -36,6 +37,11 @@ class Publicator(Model):
     error = TextField() # Последняя ошибка публикатора (Причина остановки его работы)
     last_post_id = IntegerField() # vk_id последнего опубликованного поста
     bot = ForeignKeyField(Bot, backref='publicators', index=True)
+    telegraph_token = CharField()  # токен Телеграф
+    author_caption = TextField(default="") # авторская подпись (выкладывается в конце поста)
+    author_name = CharField(default="") # имя автора (для страничек Телеграф)
+    author_url = CharField(default="")  # ссылка на автора (для страничек Телеграф)
+
 
     class Meta:
         database = db

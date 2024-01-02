@@ -9,8 +9,9 @@ from routers.console import terminal
 from routers.logers import app_loger
 from routers.bots.telegram.bots import BotExt
 import routers.bots.telegram.bots as bots_unit
-from routers.bots.errors import BotErrors
-from routers.bots.telegram.bots import init_bots
+#from routers.bots.errors import BotErrors
+
+from routers.bots.telegram.bots import init_bots, BotStatus
 
 # models
 from models.data.bot import Bot as BotModel
@@ -141,11 +142,11 @@ async def amain():
     con_task = asyncio.create_task(terminal.console({}), name='Terminal')
     #
     #t_task = asyncio.create_task(test_task(), name='Test')
-    # Создаем ботов
-    cr_bots = await init_bots()
     # Запускаем задачи
     await dispatcher.init_tasks()
     #
+    # Создаем ботов
+    cr_bots = await init_bots()
     bots_unit.current_bots = cr_bots
     for i, bot in enumerate(bots_unit.current_bots, 0):
         #tasks.append(start_polling(bot))
@@ -153,13 +154,13 @@ async def amain():
             #tasks.append(bot.start_polling())
             try:
                 bots_unit.current_bots[i].polling_process = asyncio.create_task(bot.start_polling(), name=bot.name)
-                bots_unit.current_bots[i].status = BotErrors.InWork
+                bots_unit.current_bots[i].status = BotStatus.InWork
             except Exception as ex:
-                bots_unit.current_bots[i].status = BotErrors.Broken
+                bots_unit.current_bots[i].status = BotStatus.Broken
                 print(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
                 app_loger.warning(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
         else:
-            bots_unit.current_bots[i].status = BotErrors.Stopped
+            bots_unit.current_bots[i].status = BotStatus.Stopped
     #
     # Запускаем бесконечные задачи
     await asyncio.gather(*tasks)
