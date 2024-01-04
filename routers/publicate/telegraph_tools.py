@@ -107,8 +107,13 @@ async def put_post_to_telegraph(post: Post, telegraph_token, author_name='', aut
             if video.url.find('youtube') != -1:
                 video_urls = f'{video_urls}\n<figure><iframe src="/embed/youtube?url={video.url}"></iframe></figure>'
             else:
-                video_urls = f'{video_urls}\n<a href="{video.urll}">{video.title}</a>'
-        post_text = f'{video_urls}\n{post_text}'
+                if video.title != '':
+                    video_urls = f'{video_urls}\n<a href="{video.url}">{video.title}</a>'
+                else:
+                    video_urls = f'{video_urls}\n<a href="{video.url}">Видео 🎥</a>'
+        if video_urls != '':
+            video_urls = f'<b>Смотреть видео:</b>\n{video_urls}'
+        post_text = f'{post_text}\n{video_urls}'
         # Форматируем текст
         post_text = f'{post_text}\n{author_caption}'
         post_text = text_to_telegraph_format(post_text)

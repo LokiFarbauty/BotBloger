@@ -171,6 +171,9 @@ class Parser(ParserInterface):
                 except:
                     try:
                         post_id = post['id']
+                        #
+                        if int(post_id)==12:
+                            pass
                         try:
                             text = post['text']
                             text = text.strip()
@@ -192,7 +195,11 @@ class Parser(ParserInterface):
                         try:  # Если репост
                             repost_text = post['copy_history'][0]['text']
                             repost_text = await cls.__del_forbiden_tg_char(repost_text)
-                            text = str(text) + str(repost_text)
+                            text = text.strip()
+                            if text == '':
+                                text = str(text) + str(repost_text)
+                            else:
+                                text = str(text) + "\n" + str(repost_text)
                             post = post['copy_history'][0]
                         except Exception as ex:
                             pass
@@ -266,9 +273,12 @@ class Parser(ParserInterface):
                                                 pass
                                             try:
                                                 link = {}
-                                                link['description'] = src['link']['description']
                                                 link['title'] = src['link']['title']
                                                 link['url'] =  src['link']['url']
+                                                try:
+                                                    link['description'] = src['link']['description']
+                                                except:
+                                                    link['description'] = ''
                                                 post_src.links.append(link)
                                             except:
                                                 pass

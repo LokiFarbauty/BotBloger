@@ -24,7 +24,7 @@ from views.telegram.states import SG_bot_config
 
 # models
 from models.data.user_bot import User_Bot
-from models.data.bot import Bot as BotModel
+from models.data.bot import Bot as BotModel, BotStates
 from models.data.parser import Parser
 from models.data.user import User
 from models.data_model import get_elements
@@ -109,7 +109,9 @@ class BotExt(Bot):
                     bot_info = await bot.get_me()
                     bot_url = bot_info.username
                     bot_name = bot_info.full_name
-                    bot_obj = bot_obj.refresh_bot_info(name=bot_name, url=bot_url, tg_id=bot_info.id)
+                    #bot_obj = bot_obj.refresh_bot_info(name=bot_name, url=bot_url, tg_id=bot_info.id)
+                    bot_obj = bot_obj.refresh_bot_info(name=bot_info.first_name, url=bot_info.username, tg_id=bot_info.id,
+                                      state=BotStates.InWork.value)
                 except Exception as ex:
                     pass
                 # Проверяем есть ли у пользователя парсерер
@@ -206,7 +208,9 @@ async def init_bots():
             try:
                 bot_info = await bot.get_me()
                 # обновляем информацию о боте
-                mbot.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id)
+                #mbot.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id)
+                mbot.refresh_bot_info(name=bot_info.first_name, url=bot_info.username, tg_id=bot_info.id,
+                                         state=BotStates.InWork.value)
                 bot.name = bot_info.first_name
                 bot.url = bot_info.username
                 bot.tg_id = bot_info.id

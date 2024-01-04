@@ -4,6 +4,7 @@ import asyncio
 import enum
 from math import ceil
 from aiogram import types
+from datetime import datetime
 
 # models
 from models.data.publicator import Publicator, PublicatorStates, PublicatorModes
@@ -35,7 +36,7 @@ from routers.publicate.telegraph_tools import put_post_to_telegraph
 #         '''Публикует пост из дазы в телеграм-канал'''
 #         pass
 
-current_publicators = [] # Работающие в текущий момент публикаторы
+current_publicators_process = [] # Работающие в текущий момент публикаторы
 
 class PublicateErrors(enum.Enum):
     NoError = 'опубликовано без ошибок'
@@ -164,8 +165,11 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
         # Получаем картинки
         imgs_mlds = Photo.select().where(Photo.owner==post)
         img_urls = []
+        img_caption = ''
         for img_mld in imgs_mlds:
             img_urls.append(img_mld.url)
+            if img_caption=='' and img_mld.caption != '':
+                img_caption = img_mld.caption
         if len(img_urls)>10:
             img_urls = img_urls[:9]
         # Добавляем в текст линки и ссылки на видео
@@ -175,6 +179,9 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
         links = Link.select().where(Link.owner == post)
         for link in links:
             post_text = f'{post_text}\n<a href="{link.url}">{link.title}</a>'
+        # Если нет текста, но есть картинка, берем текст из описания картинки
+        if post_text == '':
+            post_text = img_caption
         # Проверяем длинну текста
         post_text_len = len(post_text)
         if (post_text_len > PostTextlen.Short.value):
@@ -189,20 +196,20 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
             tg_url = await put_post_to_telegraph(post, telegraph_token=publicator.telegraph_token,
                                                  author_caption=author_caption, author_name=publicator.author_name,
                                                  author_url=publicator.author_url)
+            # Получаем превью текста
+            post_text_lst = split_post_text(post_text, max_len=1000, first=True)
+            post_text_preview = post_text_lst[0]
             if tg_url == '':
                 # Создать страничку в телеграфе не удалось
                 return PublicateErrors.TGPHError
             else:
-                post_text = f'{post_text}\n<b><a href="{tg_url}">Показать полностью</a></b>'
+                post_text_preview = f'{post_text_preview}\n<b><a href="{tg_url}">Показать полностью</a></b>'
                 post.telegraph_url = tg_url
                 post.save()
-            # Получаем превью текста
-            post_text_lst = split_post_text(post_text, max_len=1000, first=True)
-            post_text_preview = post_text_lst[0]
             # Готовим картинку (при наличии)
             if len(img_urls) == 0:
                 await bot_obj.send_message(chat_id=channel_tg_id, text=post_text_preview, parse_mode='HTML',
-                                       disable_web_page_preview=False)
+                                       disable_web_page_preview=True)
             elif len(img_urls) == 1:
                 await bot_obj.send_photo(chat_id=channel_tg_id, photo=img_urls[0], caption=post_text_preview, parse_mode='HTML')
             elif len(img_urls) > 1:
@@ -211,8 +218,8 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
                 for el in img_urls:
                     if first:
                         media.append(types.InputMediaPhoto(media=el, caption=post_text_preview, parse_mode='HTML'))
-                    else:
                         first = False
+                    else:
                         media.append(types.InputMediaPhoto(media=el))
                 await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
         elif (post_text_len <= PostTextlen.Short.value):
@@ -238,8 +245,8 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
                 for el in img_urls:
                     if first:
                         media.append(types.InputMediaPhoto(media=el, caption=post_text, parse_mode='HTML'))
-                    else:
                         first = False
+                    else:
                         media.append(types.InputMediaPhoto(media=el))
                 await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
         else:
@@ -292,6 +299,14 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
         for poll_mld in poll_mlds:
             options = poll_mld.answers.split('||')
             await bot_obj.send_poll(chat_id=channel_tg_id, question=poll_mld.question, options=options)  # Отправка опросов
+        # Сохраняем статус публикатора
+        publicator.last_post_id = post.post_id
+        publicator.save()
+        post.published = 1
+        dt = datetime.now()
+        cr_dt = dt.replace(microsecond=0).timestamp()
+        post.last_published_dt = cr_dt
+        post.save()
         #
         return PublicateErrors.NoError
     except Exception as ex:
@@ -322,7 +337,6 @@ async def publicating(publicator: Publicator):
             publicator.save()
             return
 
-
     # Спим
     if publicator.period>0:
         await asyncio.sleep(publicator.period)
@@ -335,17 +349,9 @@ async def init_current_publicators():
     # Загружаем данные из базы
     publicators_mld = Publicator.select().where(Publicator.state==PublicatorStates.Working.value)
     for publicator_mld in publicators_mld:
-        # Получаем канал
-        channel = Channel.get_by_id(publicator_mld.channel)
         # Создаем задачу
-        publicator_task = asyncio.create_task(publicating(period=publicator_mld.period,
-                                                          tg_channel_id=channel,
-                                                          mode=publicator_mld.mode,
-                                                          parse_task_key=publicator_mld.parse_task,
-                                                          parse_program_key=publicator_mld.parse_program,
-                                                          last_post_id = publicator_mld.last_post_id), name=publicator_mld.name)
-        #publicator_obj = TGPublicator(db_key=publicator_mld.get_id(), task=publicator_task, state=publicator_mld.state)
-        #current_publicators.append(publicator_obj)
+        publicator_task = asyncio.create_task(publicating(publicator_mld))
+        current_publicators_process.append(publicator_task)
 
 
 

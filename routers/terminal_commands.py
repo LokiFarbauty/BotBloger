@@ -8,10 +8,12 @@ from routers.parsing.analyzer import analyze_posts, AnalyzerParams
 from models.saver import save_posts
 from models.data.parse_task import ParseTask
 from models.data.post import Post
+from models.data.publicator import Publicator
 #
 from routers.logers import app_loger
 from routers.parsing.dispatcher import parsing_dispatcher, parsing
 from routers.publicate.telegraph_tools import put_post_to_telegraph
+from routers.publicate.publicators import public_post_to_channel
 
 commands = []
 
@@ -147,4 +149,17 @@ async def put_post_in_telegraph(post_key: int):
 
 commands.append(
      Command(name='put_post_in_telegraph', func=put_post_in_telegraph, args_num=1, help='Размещает пост в телеграфе. Параметры: 1 - ключ поста')
+)
+
+async def public_post_test(publicator_key: int, post_key: int):
+    try:
+        post = Post.get_by_id(post_key)
+        publicator = Publicator.get_by_id(publicator_key)
+        res = await public_post_to_channel(publicator, post)
+    except Exception as ex:
+        res = ex
+    return res
+
+commands.append(
+     Command(name='public_post_test', func=public_post_test, args_num=2, help='Размещает пост в канале. Параметры: 1 - ключ публикатора. 2 - ключ поста')
 )

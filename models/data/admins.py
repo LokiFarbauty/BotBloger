@@ -3,21 +3,21 @@ from peewee import *
 #
 from models.dm_config import db
 from models.data.user import User
-from models.data.parser import Parser
+from models.data.publicator import Publicator
 
-class User_Parser(Model):
-    '''Парсеры доступные пользователю'''
-    user = ForeignKeyField(User, backref='users_parsers')
-    parser = ForeignKeyField(Parser, backref='users_parsers')
+class Admins(Model):
+    '''Администраторы'''
+    user = ForeignKeyField(User, backref='admins')
+    publicator = ForeignKeyField(Publicator, backref='admins')
     class Meta:
         database = db  # this model uses the "people.db" database
 
     @classmethod
-    def get_obj(cls, user: User, parser: Parser):
+    def get_obj(cls, user: User, publicator: Publicator):
         try:
             queryes = []
             queryes.append(cls.user == user)
-            queryes.append(cls.parser == parser)
+            queryes.append(cls.publicator == publicator)
             el = cls.get(*queryes)
             return el
         except Exception as ex:

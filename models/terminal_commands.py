@@ -1,9 +1,10 @@
 '''Команды для терминала, он заберает их отсюда'''
 # py
 from datetime import datetime
+from aiogram import Bot as aioBot
 
 # models
-from models.data.bot import Bot
+from models.data.bot import Bot, BotStates
 from models.data.user import User
 from models.data.parser import Parser
 from models.data.parse_program import ParseProgram
@@ -21,15 +22,16 @@ from models.data.poll import Poll
 from models.data.link import Link
 from models.data.post_text_FTS import PostText
 from models.data.post_hashtag import Post_Hashtag
-
+from models.data.publicator import Publicator, PublicatorStates, PublicatorModes
+from models.data.channel import Channel, ChannelTypes
 
 
 # routers
 from routers.console.terminal_interface import Command
 from routers.parsing.dispatcher import parsing_dispatcher, INFINITE
-import routers.bots.telegram.bots as bots_unit
 from routers.logers import app_loger
 from routers.bots.telegram import bots
+import routers.bots.telegram.bots as bots_unit
 
 # views
 from views.telegram.dialogs_dispatcher import bot_dialogs
@@ -39,6 +41,40 @@ commands = []
 # commands.append(
 #      Command(name='get_users', func=User.get_users_obj, args_num=1, help='Получить пользователей из базы данных. Параметры: 1 - user_id либо username.')
 # )
+
+
+async def get_users():
+    try:
+        user_desc = ''
+        users = User.select()
+        for user in users:
+            user_desc = f'{user_desc}"{user.username}", key: {user.get_id()}, tg_id: {user.tg_user_id}, first_name: "{user.firstname}", last_name: "{user.lastname}"\n'
+        if user_desc != '':
+            return user_desc
+        else:
+            return 'Пользователей нет.'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='get_users', func=get_users, args_num=0, help="Вывести список пользователей."
+                                                              " Параметры: нет.")
+)
+
+async def get_user(tg_id: int):
+    try:
+        user = User.get_user(user_tg_id=tg_id)
+        if user != None:
+            return f'Key: {user.get_id()}'
+        else:
+            return f'Пользователь не найден'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='get_user', func=get_user, args_num=1, help="Получить ключ пользователя по tg_id."
+                                                              " Параметры: tg_id: int")
+)
 
 async def get_test_user():
     user = User.select().where(User.tg_user_id == 0)
@@ -78,7 +114,7 @@ async def create_test_bot(user_id: int = 0):
             try:
                 bot_info = await bot.get_me()
                 # обновляем информацию о боте
-                element.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id)
+                element.refresh_bot_info(name=bot_info.first_name, url=bot_info.username, tg_id=bot_info.id, state=BotStates.InWork.value)
                 bot.name = bot_info.first_name
                 bot.url = bot_info.username
                 bot.tg_id = bot_info.id
@@ -94,6 +130,89 @@ async def create_test_bot(user_id: int = 0):
 
 commands.append(
      Command(name='create_test_bot', func=create_test_bot, args_num=0, help='Создать тестового бота. Параметры (необязательно): 1  - user_id - хозяина бота')
+)
+
+async def create_bot(user_tg_id: int, token: str, active=True):
+    mbots = get_elements(Bot, Bot.token == token)
+    try:
+        element = mbots[0]
+        return 'Бот с указанным токеном уже создан.'
+    except Exception as ex:
+        if user_tg_id != 0:
+            user = User.get_user(user_tg_id = user_tg_id)
+            if user==None:
+                app_loger.warning(f'При создании бота не найден пользователь с id {user_tg_id}.')
+                return f'При создании бота не найден пользователь с id {user_tg_id}.'
+        else:
+            user = await get_test_user()
+        element = Bot.make(user=user, token=token, parse_mode='HTML', name='', url='', active=1, public=1, tg_id=0, db_file=dm_config.DB_FILE_PATH)
+        element.save()
+        # Запускаем бот
+        try:
+            bot = bots.BotExt(token, 'HTML', 1, 1, *bot_dialogs)
+            bots_unit.current_bots.append(bot)
+            try:
+                bot_info = await bot.get_me()
+                # обновляем информацию о боте
+                element.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id, state=BotStates.InWork.value)
+                bot.name = bot_info.first_name
+                bot.url = bot_info.username
+                bot.tg_id = bot_info.id
+            except Exception as ex:
+                app_loger.warning(f'Установить связь с ботом {element.name} не удалось. Ошибка: {ex}')
+            try:
+                await bot.start_polling_task()
+            except Exception as ex:
+                app_loger.warning(f'Запустить бот {element.name} не удалось. Ошибка: {ex}')
+                try:
+                    element.refresh_bot_info(bot_info.first_name, bot_info.username, bot_info.id,
+                                        state=BotStates.InWork.value)
+                except:
+                    pass
+        except Exception as ex:
+            app_loger.error(f'Ошибка create_bot: {ex}')
+        return element
+
+commands.append(
+     Command(name='create_test_bot', func=create_test_bot, args_num=0, help='Создать тестового бота. Параметры (необязательно): 1  - user_id - хозяина бота')
+)
+
+async def get_bots():
+    # Указываем сервисного пользователя
+    user = 1
+    desc = ''
+    # Получаем задачу по имени, если не указано возвращаются все задачи
+    bots = Bot.select()
+    for bot in bots:
+        desc = f'{desc}"{bot.name}" (создатель: {bot.user.username}, адрес: {bot.url}, tg_id: {bot.tg_id}, статус: {BotStates(bot.state).name}, автозапуск: {bot.active}, токен:{bot.token}).\n'
+    if desc == '':
+        desc = 'Боты не найдены.'
+    return desc
+
+commands.append(
+     Command(name='get_bots', func=get_bots, args_num=0, help="Получить информацию о добавленых в базу ботах."
+                                                              " Параметры: нет")
+)
+
+async def delete_bot(bot_key_or_name):
+    bot = None
+    try:
+        if type(bot_key_or_name) is int:
+            bot = Bot.get_by_id(bot_key_or_name)
+        if type(bot_key_or_name) is str:
+            bot = Bot.get_bot(name=bot_key_or_name)
+        if bot != None:
+            bot.delete_instance()
+        else:
+            return f'Бот "{bot_key_or_name}" не найден.'
+    except Exception as ex:
+        print(ex)
+        return f'Удалить бота "{bot_key_or_name}" не удалось. Причина: {ex}'
+    return f'Бот "{bot_key_or_name}" удален.'
+
+commands.append(
+     Command(name='delete_bot', func=delete_bot, args_num=1, help="Удалить бот из базы."
+                                                              " Параметры: 1 - имя либо ключ бота.")
 )
 
 async def create_admin():
@@ -296,6 +415,181 @@ async def create_task(name: str, target_name: str, program_key: int=0,  filter='
 
 commands.append(
      Command(name='create_task', func=create_task, args_num=2, help="Создать задачу для парсинга. Параметры: name: str, target_name: str, program_key: int=0,  filter='all'")
+)
+
+async def delete_task(task_key_or_name):
+    try:
+        if type(task_key_or_name) is int:
+            task = ParseTask.get_by_id(task_key_or_name)
+        if type(task_key_or_name) is str:
+            task = ParseTask.get_task(name=task_key_or_name)
+        if task != None:
+            task.delete_instance()
+        else:
+            return f'Задача "{task_key_or_name}" не найдена.'
+    except Exception as ex:
+        print(ex)
+        return f'Удалить задачу "{task_key_or_name}" не удалось. Причина: {ex}'
+    return f'Задача "{task_key_or_name}" удалена.'
+
+commands.append(
+     Command(name='delete_task', func=delete_task, args_num=1, help="Удалить задачу."
+                                                              " Параметры: 1 - имя либо ключ задачи.")
+)
+
+async def create_channel(tg_id: int, user_key=1, type=0):
+    try:
+        bot = bots_unit.current_bots[0]
+        #chat = await aioBot(bot).get_chat(tg_id)
+        user = User.get_by_id(user_key)
+        chat = await bot.get_chat(tg_id)
+        name = chat.full_name
+        url = chat.username
+        channel = Channel.get_channel(user=user, name=name, url=url, channel_id=tg_id)
+        if channel == None:
+            channel = Channel.create(user=user, name=name, url=url, channel_tg_id=tg_id, type=type)
+            return f'Канал "{name}" (key: {channel.get_id()}, tg_id: {tg_id}) для пользователя {user.username} успешно создан.'
+        else:
+            return f'Канал "{name}" (key: {channel.get_id()}, tg_id: {tg_id}) пользователем {user.username} уже создан.'
+        pass
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='create_channel', func=create_channel, args_num=1, help="Создать канал. Параметры: tg_id: int, user_key=1, type=0")
+)
+
+async def get_channels():
+    try:
+        ch_desc = ''
+        channels = Channel.select()
+        for ch in channels:
+            ch_desc = f'{ch_desc}"{ch.name}", key: {ch.get_id()}, tg_id: {ch.channel_tg_id}, user: "{ch.user.username}"(key: {ch.user.get_id()}), url: "{ch.url}", type: {ChannelTypes(ch.type).name}\n'
+        if ch_desc != '':
+            return ch_desc
+        else:
+            return 'Каналов нет.'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='get_channels', func=get_channels, args_num=0, help="Вывести список созданных каналов."
+                                                              " Параметры: нет.")
+)
+
+async def get_channel(tg_id: int, user_key: int):
+    try:
+        user = User.get_by_id(user_key)
+        channel = Channel.get_channel(channel_id=tg_id, user=user)
+        if channel != None:
+            return f'Key: {channel.get_id()}'
+        else:
+            return f'Канал не найден'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='get_channel', func=get_channel, args_num=2, help="Получить ключ канала по tg_id и user_key."
+                                                              " Параметры: tg_id: int, user_key: int")
+)
+
+async def delete_channel(task_key_or_name, user_key = 1):
+    ch = None
+    try:
+        if type(task_key_or_name) is int:
+            ch = Channel.get_by_id(task_key_or_name)
+        if type(task_key_or_name) is str:
+            user = User.get_by_id(user_key)
+            ch = Channel.get_channel(name=task_key_or_name, user=user)
+        if ch != None:
+            ch.delete_instance()
+        else:
+            return f'Канал "{task_key_or_name}" не найден.'
+    except Exception as ex:
+        print(ex)
+        return f'Удалить канал "{task_key_or_name}" не удалось. Причина: {ex}'
+    return f'Канал "{task_key_or_name}" удален.'
+
+commands.append(
+     Command(name='delete_channel', func=delete_channel, args_num=1, help="Удалить канал."
+                                                              " Параметры: 1 - имя либо ключ канала.")
+)
+
+
+async def create_publicator(name: str, channel_key: int, task_key: int, bot_key: int, telegraph_token: str, user_key = 1):
+    try:
+        dt = datetime.now()
+        cr_dt = dt.replace(microsecond=0).timestamp()
+        # Указываем сервисного пользователя
+        user = User.get_by_id(user_key)
+        # Получаем бота
+        bot_mld = Bot.get_by_id(bot_key)
+        # Получаем канал
+        channel = Channel.get_by_id(channel_key)
+        # Получаем задачу
+        task = ParseTask.get_by_id(task_key)
+        # Проверяем есть ли публикатор с таким ключем
+        # пример create_publicator: dump, 1, 1, 1, 56cbd6664bcc26ea2e247b50805cb2c3c12efc70bbf3d3dd5148ee1a02ad
+        publicator = Publicator.get_publicator(name=name, channel=channel, user=user)
+        if publicator == None:
+            criterion = Criterion.create(target_id=task.target_id,
+                                         target_name=task.target_name, target_type=task.target_type)
+            publicator = Publicator.create(name=name, img='', channel=channel, user=user,
+                                           parse_task=task_key, criterion=criterion, mode=PublicatorModes.Single.value, period=0, bot=bot_mld,
+                                           telegraph_token=telegraph_token, author_caption='', author_name=bot_mld.name, cr_dt=cr_dt,
+                                           author_url=f'https://t.me/{bot_mld.url}', premoderate=0, state=PublicatorStates.Stopped.value)
+            return f'Публикатор {publicator.name} (key: {publicator.get_id()}) успешно создан.'
+        else:
+            return f'Публикатор {name} пользователем {user.username} уже создан.'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='create_publicator', func=create_publicator, args_num=5, help="Создать публикатор."
+                                                              " Параметры: name: str, channel_key: int, task_key: int, bot_key: int, telegraph_token: str, user_key = 1")
+)
+
+async def get_publicators():
+    try:
+        ch_desc = ''
+        publicators = Publicator.select()
+        for ch in publicators:
+            ch_desc = f'{ch_desc}"{ch.name}" (key: {ch.get_id()}), task: "{ch.parse_task.name}", user: "{ch.user.username}",' \
+                      f' mode: "{PublicatorModes(ch.mode).name}", period: "{ch.period}", bot: "{ch.bot.name}", state: "{PublicatorStates(ch.mode).name}"\n'
+        if ch_desc != '':
+            return ch_desc
+        else:
+            return 'Публикаторов нет.'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='get_publicators', func=get_publicators, args_num=0, help="Вывести список созданных публикаторов."
+                                                              " Параметры: нет.")
+)
+
+
+async def delete_publicator(task_key_or_name, user_key = 1):
+    ch = None
+    try:
+        if type(task_key_or_name) is int:
+            ch = Publicator.get_by_id(task_key_or_name)
+        if type(task_key_or_name) is str:
+            user = User.get_by_id(user_key)
+            ch = Publicator.get_publicator(name=task_key_or_name, user=user)
+        if ch != None:
+            ch.criterion.delete_instance()
+            ch.delete_instance()
+        else:
+            return f'Публикатор "{task_key_or_name}" не найден.'
+    except Exception as ex:
+        print(ex)
+        return f'Удалить публикатор "{task_key_or_name}" не удалось. Причина: {ex}'
+    return f'Публикатор "{task_key_or_name}" удален.'
+
+commands.append(
+     Command(name='delete_publicator', func=delete_publicator, args_num=1, help="Удалить публикатор."
+                                                              " Параметры: task_key_or_name, user_key = 1")
 )
 
 async def clear_posts_in_db():
