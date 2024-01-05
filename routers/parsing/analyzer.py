@@ -116,14 +116,14 @@ def delete_hashtags(text: str) -> str:
 def check_url(text: str) -> bool:
     res = True
     if text.find('https:') != -1 or text.find('http:') != -1 or text.find('www.') != -1 or \
-    text.find('.com') != -1 or text.find('.ru') != -1 or text.find('club') != -1:
+    text.find('.com') != -1 or text.find('.ru') != -1 or text.find('club') != -1 or text.find('vk.cc') != -1:
         res = False
     return res
 
 def clear_url(text: str) -> str:
     '''Удаляет из текста ссылки'''
     res = True
-    url_tags = ['https:', 'http:', 'www.', '.com', '.ru', 'club']
+    url_tags = ['https:', 'http:', 'www.', '.com', '.ru', 'club', 'vk.cc']
     for tag in url_tags:
         pos_s = 1
         while pos_s != -1:
