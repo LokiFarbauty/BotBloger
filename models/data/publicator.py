@@ -10,6 +10,7 @@ from models.data.parse_task import ParseTask
 from models.data.criterion import Criterion
 
 class PublicatorModes(enum.Enum):
+    NotSet = 0  # не задан
     Single = 1 # публиковать один раз случайный пост
     Period = 2 # публиковать периодически случайный пост
     Marketing = 3 # режим рекламная компания публиковать самые рейтинговые из диапазона
@@ -19,6 +20,7 @@ class PublicatorStates(enum.Enum):
     Stopped = 0 # публикатор остановлен
     Working = 1 # публикатор работает
     Stopped_Error = 2 # остановлекн из-за ошибки
+    Done = 3 # завершил работу
 
 
 class Publicator(Model):

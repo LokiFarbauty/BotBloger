@@ -2,6 +2,7 @@ import asyncio
 
 # не удалять
 import routers.parsing.dispatcher as dispatcher
+import routers.publicate.publicators as publicators_unit
 #
 
 # routers
@@ -161,7 +162,8 @@ async def amain():
                 app_loger.warning(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
         else:
             bots_unit.current_bots[i].status = BotStatus.Stopped
-    #
+    # Запускаем публикаторы
+    #await publicators_unit.init_current_publicators()
     # Запускаем бесконечные задачи
     await asyncio.gather(*tasks)
 

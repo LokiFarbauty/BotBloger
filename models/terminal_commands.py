@@ -174,7 +174,7 @@ async def create_bot(user_tg_id: int, token: str, active=True):
         return element
 
 commands.append(
-     Command(name='create_test_bot', func=create_test_bot, args_num=0, help='Создать тестового бота. Параметры (необязательно): 1  - user_id - хозяина бота')
+     Command(name='create_bot', func=create_bot, args_num=0, help='Создать бота. Параметры: user_tg_id: int, token: str, active=True')
 )
 
 async def get_bots():

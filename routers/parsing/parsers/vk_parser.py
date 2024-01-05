@@ -204,6 +204,8 @@ class Parser(ParserInterface):
                         except Exception as ex:
                             pass
                         if text == '': text = VOID_CHAR
+                        if text == 'Запись удалена ' or text == 'Запись удалена':
+                            continue
                         hashtags = await cls.__get_hashtags(text)
                         #
                         post_src = APost(post_id, text, views_count, likes_count, post_datetime, hashtags=hashtags)

@@ -5,11 +5,14 @@ import enum
 from math import ceil
 from aiogram import types
 from datetime import datetime
+from peewee import fn
 
 # models
 from models.data.publicator import Publicator, PublicatorStates, PublicatorModes
 from models.data.channel import Channel
 from models.data.post import Post
+from models.data.hashtag import Hashtag
+from models.data.post_hashtag import Post_Hashtag
 from models.data.video import Video
 from models.data.link import Link
 from models.data.audio import Audio
@@ -23,6 +26,7 @@ from models.data.post_text_FTS import PostText
 from routers.bots.telegram.bots import get_BotExt, BotStatus
 from routers.logers import publicators_loger
 from routers.publicate.telegraph_tools import put_post_to_telegraph
+from routers.parsing.analyzer import check_text
 
 
 # class TGPublicator():
@@ -44,6 +48,12 @@ class PublicateErrors(enum.Enum):
     MatError = 'в посте обнаружены запрещенные слова, он не опубликован'
     TGPHError = 'не удалось опубликовать пост в Телеграф'
     OtherError = 'неизвестная ошибка, смотрите логи'
+
+class PBTaskStatus(enum.Enum):
+    Done = 'выполнена'
+    Cancelled = 'остановлена'
+    Active = 'выполняется'
+    NotFound = 'не найдена'
 
 class PostTextlen(enum.Enum):
     Short = 950 # длинна текста до 1000 символов
@@ -140,7 +150,61 @@ def split_post_text(post_text, max_len=1020, t_range=200, first=False):
         text_posts.append(remains)
     return text_posts
 
-async def public_post_to_channel(publicator: Publicator, post: Post):
+def get_publicator_process_state(name: str):
+    for el in current_publicators_process:
+        el_name = el.get_name()
+        if el_name == name:
+            task_process = el
+            if task_process.done():
+                return PBTaskStatus.Done
+            if task_process.cancelled():
+                return PBTaskStatus.Cancelled
+            return PBTaskStatus.Active
+    return PBTaskStatus.NotFound
+
+def get_publicator_process(name: str):
+    for el in current_publicators_process:
+        el_name = el.get_name()
+        if el_name == name:
+            return el
+    return None
+
+def stop_publicator_process(name: str):
+    for el in current_publicators_process:
+        el_name = el.get_name()
+        if el_name == name:
+            try:
+                el.cancel()
+                # Меняем статус в базе
+                publ = Publicator.get_publicator(name=name)
+                if publ != None:
+                    publ.state = PBTaskStatus.Cancelled.value
+                    publ.save()
+            except Exception as ex:
+                return ex
+    return PBTaskStatus.NotFound
+
+def start_publicator_process(publicator: Publicator):
+    # Ищем была ли задача и удаляем ее из списка
+    task_process = get_publicator_process(publicator.name)
+    if task_process == None:
+        # Запускаем процесс
+        publicator_task = asyncio.create_task(publicating(publicator), name=publicator.name)
+        current_publicators_process.append(publicator_task)
+        return f'Публикатор "{publicator.name}" запущен.'
+    else:
+        task_status = get_publicator_process_state(publicator.name)
+        if task_status == PBTaskStatus.Active:
+            return f'Публикатор "{publicator.name}" уже запущен.'
+        else:
+            current_publicators_process.remove(task_process)
+            publicator_task = asyncio.create_task(publicating(publicator), name=publicator.name)
+            current_publicators_process.append(publicator_task)
+            return f'Публикатор "{publicator.name}" запущен.'
+
+
+
+async def public_post_to_channel(publicator: Publicator, post: Post, save_last_post_id = False):
     try:
         post_key = post.get_id()
         # Получаем id канала
@@ -158,10 +222,10 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
         # Проверяем пост на наличие мата
         post_index = PostText.get_by_id(post_key)
         post_text = post_index.text
-        if publicator.criterion.check_mat == 1:
-            check_mat = check_mat_in_text(post_text)
-            if check_mat:
-                return PublicateErrors.MatError
+        # if publicator.criterion.check_mat == 1:
+        #     check_mat = check_mat_in_text(post_text)
+        #     if check_mat:
+        #         return PublicateErrors.MatError
         # Получаем картинки
         imgs_mlds = Photo.select().where(Photo.owner==post)
         img_urls = []
@@ -192,10 +256,13 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
             if url_pos != -1:
                 post_text = post_text[:url_pos-1]
             # Формируем страничку в телеграфе
-            author_caption = publicator.author_caption
-            tg_url = await put_post_to_telegraph(post, telegraph_token=publicator.telegraph_token,
-                                                 author_caption=author_caption, author_name=publicator.author_name,
-                                                 author_url=publicator.author_url)
+            # Ищем создавалась ли страница в телеграфе ранее
+            tg_url = post.telegraph_url
+            if tg_url == '' or tg_url == None:
+                author_caption = publicator.author_caption
+                tg_url = await put_post_to_telegraph(post, telegraph_token=publicator.telegraph_token,
+                                                     author_caption=author_caption, author_name=publicator.author_name,
+                                                     author_url=publicator.author_url)
             # Получаем превью текста
             post_text_lst = split_post_text(post_text, max_len=1000, first=True)
             post_text_preview = post_text_lst[0]
@@ -300,8 +367,9 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
             options = poll_mld.answers.split('||')
             await bot_obj.send_poll(chat_id=channel_tg_id, question=poll_mld.question, options=options)  # Отправка опросов
         # Сохраняем статус публикатора
-        publicator.last_post_id = post.post_id
-        publicator.save()
+        if save_last_post_id:
+            publicator.last_post_id = post.post_id
+            publicator.save()
         post.published = 1
         dt = datetime.now()
         cr_dt = dt.replace(microsecond=0).timestamp()
@@ -313,35 +381,153 @@ async def public_post_to_channel(publicator: Publicator, post: Post):
         publicators_loger.error(f'Ошибка публикатора {publicator.get_id()}(пост: {post.get_id()}, стадия: "{state}"): {ex}')
         return PublicateErrors.OtherError
 
+async def get_hashtags_posts(hts: str, old_posts=None):
+    try:
+        hashtags = hts.replace(', ', ',')
+        hashtags = hashtags.split(',')
+        hashtags = [x.lower() for x in hashtags]
+        hashtags = [x.strip() for x in hashtags]
+        # Получаем посты с хэштэгами
+        ht_cond = None
+        for ht in hashtags:
+            if ht_cond != None:
+                ht_cond = ((ht_cond) | (Post_Hashtag.hashtag.value == ht))
+            else:
+                ht_cond = (Post_Hashtag.hashtag.value == ht)
+        if old_posts is None or type(old_posts) is list:
+            posts = Post.select().join(Post_Hashtag).join(Hashtag).where(ht_cond)
+        else:
+            posts = old_posts.select().join(Post_Hashtag).join(Hashtag).where(ht_cond)
+        # for post in posts:
+        #     print(post.get_id())
+        return posts
+    except Exception as ex:
+        return []
+
+async def get_posts(condition, old_posts=None):
+    try:
+        if old_posts is None or type(old_posts) is list:
+            posts = Post.select().where(condition).order_by(Post.post_id.asc())
+        else:
+            posts = old_posts.select().where(condition).order_by(Post.post_id.asc())
+    except:
+        posts = []
+    return posts
+
+async def get_random_posts(condition, old_posts=None):
+    try:
+        if old_posts is None or type(old_posts) is list:
+            posts = Post.select().where(condition).order_by(fn.Random()).limit(1)
+        else:
+            posts = old_posts.select().where(condition).order_by(fn.Random()).limit(1)
+    except:
+        posts = []
+    return posts
+
 
 async def publicating(publicator: Publicator):
     '''Поток публикатора, в котором он периодически получает из базы посты и публикует их в канал'''
-    # Получаем посты
-    posts=[]
-    parse_program_key = publicator.parse_program.get_id()
-    parse_task_key = publicator.parse_task.get_id()
-    last_post_id = publicator.last_post_id
-    if publicator.mode == PublicatorModes.New:
-        # Публикуем новые посты
-        # Получаем поcты предназначенные к публикации
-        if parse_program_key==0 or parse_program_key==None:
-            condition = Post.post_id > last_post_id | Post.parse_task == parse_task_key
-        else:
-            condition = Post.post_id > last_post_id | Post.parse_program == parse_task_key
-        posts = Post.select().where(condition).order_by(Post.post_id.asc())
-    for post in posts:
-        res = await public_post_to_channel(publicator, post)
-        if res == PublicateErrors.BotError:
-            # Критическая ошибка публикации, останавливаем публикатор
-            publicator.state = PublicatorStates.Stopped_Error
+    while True:
+        try:
+            # Обновляем статус
+            publicator.state = PublicatorStates.Working.value
             publicator.save()
-            return
-
-    # Спим
-    if publicator.period>0:
-        await asyncio.sleep(publicator.period)
-    else:
-        return
+            period = publicator.period
+            # Получаем посты
+            posts=[]
+            try:
+                parse_program_key = publicator.parse_program.get_id()
+            except:
+                parse_program_key = 0
+            parse_task_key = publicator.parse_task.get_id()
+            last_post_id = publicator.last_post_id
+            # Определяем критериии для публикации -
+            #  хэштег (остальное не поддерживается), ключевое слово или фраза, проверка на запрещенные слова (100 попыток), очистка слов в тексте,
+            # длинна текста и даты
+            sub_condition = 1
+            # Хэштэги
+            hts = publicator.criterion.hashtags
+            if hts != None and hts != '':
+                posts = await get_hashtags_posts(hts, posts)
+            # Даты
+            start_date = publicator.criterion.post_start_date
+            if start_date != None and start_date != 0:
+                sub_condition = ((sub_condition) & (Post.dt > start_date))
+            end_date = publicator.criterion.post_end_date
+            if end_date != None and end_date != 0:
+                sub_condition = ((sub_condition) & (Post.dt < end_date))
+            # Длинна текста
+            max_text_len = publicator.criterion.post_max_text_length
+            if max_text_len != None and max_text_len != 0:
+                sub_condition = ((sub_condition) & (Post.text_len < max_text_len))
+            min_text_len = publicator.criterion.post_min_text_length
+            if min_text_len != None and min_text_len != 0:
+                sub_condition = ((sub_condition) & (Post.text_len > min_text_len))
+            # Получаем посты для публикации
+            if publicator.mode == PublicatorModes.New.value:
+                # Публикуем новые посты
+                # Получаем поcты предназначенные к публикации
+                if parse_program_key==0 or parse_program_key==None:
+                    condition = ((sub_condition) & (Post.post_id > last_post_id) & (Post.parse_task == parse_task_key))
+                else:
+                    condition = ((sub_condition) & (Post.post_id > last_post_id) & (Post.parse_program == parse_task_key))
+                posts = await get_posts(condition, posts)
+            elif publicator.mode == PublicatorModes.Single.value:
+                if parse_program_key==0 or parse_program_key==None:
+                    condition = ((sub_condition) & (Post.parse_task == parse_task_key))
+                else:
+                    condition = ((sub_condition) & (Post.parse_program == parse_task_key))
+                posts = await get_random_posts(condition, posts)
+                period = 0
+            elif publicator.mode == PublicatorModes.Period.value:
+                if parse_program_key==0 or parse_program_key==None:
+                    condition = ((sub_condition) & (Post.parse_task == parse_task_key))
+                else:
+                    condition = ((sub_condition) & (Post.parse_program == parse_task_key))
+                posts = await get_random_posts(condition, posts)
+            elif publicator.mode == PublicatorModes.Marketing.value:
+                    pass
+            # Размещаем посты
+            for post in posts:
+                try:
+                    #print(post.get_id())
+                    post_text_key = post.text
+                    post_text_mld = PostText.get_by_id(post_text_key)
+                    post_text = post_text_mld.text
+                    # Проверяем на запрещенные слова, если они есть то кидаем цикл на новый виток
+                    if publicator.criterion.forbidden_words != None and publicator.criterion.forbidden_words != '':
+                        if not check_text(post_text, publicator.criterion.forbidden_words):
+                            continue
+                    # Проверяем текст на мат
+                    if publicator.criterion.check_mat != None and publicator.criterion.check_mat != 0:
+                        if check_mat_in_text(post_text):
+                            continue
+                    res = await public_post_to_channel(publicator, post)
+                    if res == PublicateErrors.BotError:
+                        # Критическая ошибка публикации, останавливаем публикатор
+                        publicator.state = PublicatorStates.Stopped_Error.value
+                        publicator.save()
+                        return
+                    if publicator.mode == PublicatorModes.New.value:
+                        publicator.last_post_id = post.post_id
+                        publicator.save()
+                    else:
+                        # Если не новые то прекращаем размещения до следующего периода
+                        break
+                    # пауза между публикациями
+                    await asyncio.sleep(3)
+                except Exception as ex:
+                    publicators_loger.error(f'Ошибка публикатора "{publicator.name}" при публикации поста {post.get_id()}: {ex}')
+            publicator.save()
+            # Спим
+            if period > 0:
+                await asyncio.sleep(period)
+            else:
+                publicator.state = PublicatorStates.Done.value
+                publicator.save()
+                return
+        except Exception as ex:
+            publicators_loger.error(f'Ошибка процесса публикатора "{publicator.name}": {ex}')
 
 async def init_current_publicators():
     '''Инициализация публикаторов
@@ -350,7 +536,7 @@ async def init_current_publicators():
     publicators_mld = Publicator.select().where(Publicator.state==PublicatorStates.Working.value)
     for publicator_mld in publicators_mld:
         # Создаем задачу
-        publicator_task = asyncio.create_task(publicating(publicator_mld))
+        publicator_task = asyncio.create_task(publicating(publicator_mld), name=publicator_mld.name)
         current_publicators_process.append(publicator_task)
 
 

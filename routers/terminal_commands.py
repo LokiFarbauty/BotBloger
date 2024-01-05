@@ -13,7 +13,8 @@ from models.data.publicator import Publicator
 from routers.logers import app_loger
 from routers.parsing.dispatcher import parsing_dispatcher, parsing
 from routers.publicate.telegraph_tools import put_post_to_telegraph
-from routers.publicate.publicators import public_post_to_channel
+from routers.publicate.publicators import (public_post_to_channel, get_publicator_process_state,
+                                           stop_publicator_process, start_publicator_process)
 
 commands = []
 
@@ -136,6 +137,37 @@ async def start_task_process(taskname: str):
 
 commands.append(
      Command(name='start_task_process', func=start_task_process, args_num=1, help='Запускает процесс задачи. Параметры: 1 - имя задачи')
+)
+
+async def get_publicator_process_status(name: str):
+    task_state = get_publicator_process_state(name)
+    return task_state
+
+commands.append(
+     Command(name='get_publicator_process_status', func=get_publicator_process_status, args_num=1, help='Возвращает статус процесса публикатора. Параметры: 1 - имя публикатора')
+)
+
+async def stop_publicator(name: str):
+    res = stop_publicator_process(name)
+    return res
+
+commands.append(
+     Command(name='stop_publicator', func=stop_publicator, args_num=1, help='Останвливает процесс публикатора. Параметры: name: str')
+)
+
+async def start_publicator(name: str):
+    res = f'Публикатор "{name}" не найден.'
+    try:
+        publicator = Publicator.get_publicator(name=name)
+        if publicator != None:
+            res = start_publicator_process(publicator)
+            return res
+    except Exception as ex:
+        res = f'Ошибка {ex}'
+    return res
+
+commands.append(
+     Command(name='start_publicator', func=start_publicator, args_num=1, help='Запускает процесс публикатора. Параметры: name: str')
 )
 
 async def put_post_in_telegraph(post_key: int):
