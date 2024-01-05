@@ -6,10 +6,13 @@ import re
 from dataclasses import dataclass
 import hashlib
 #
-from routers.parsing.interface_parser import APost
+
 from models.data.post import Post
+from models.data.criterion import VideoPlatform
+#
 from routers.parsing.text_analyze_tools import check_text_on_keywords, lematize_words
 from routers.parsing.parsing_config import VOID_TEXT_CHAR
+from routers.parsing.interface_parser import APost
 
 class KeyWordsAnalyzeMode(enum.Enum):
     And = 0
@@ -37,10 +40,14 @@ class AnalyzerParams:
 def check_video_platform(videos: list, video_platform: int)-> list:
     '''Проверяет пост на соответсвие видеоплатвормы'''
     new_video=[]
-    if video_platform == 1:
+    if video_platform == VideoPlatform.OnlyYouTube.value:
         cond = 'youtube.com/'
-    elif video_platform == 2:
+    elif video_platform == VideoPlatform.OnlyVK.value:
         cond = 'vk.com/'
+    elif video_platform == VideoPlatform.Ignore.value:
+        return new_video
+    elif video_platform == VideoPlatform.All.value:
+        return videos
     else:
         return new_video
     for video in videos:

@@ -5,8 +5,10 @@ from models.dm_config import db
 
 class VideoPlatform(enum.Enum):
     All = 0
-    OnlyYouTube = 1
-    OnlyVK = 2
+    Ignore = 1
+    OnlyYouTube = 2
+    OnlyVK = 3
+
 
 class Criterion(Model):
     target_id = CharField(null=True) # id цели (для ВК)
