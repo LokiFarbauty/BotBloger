@@ -22,8 +22,9 @@ class Criterion(Model):
     post_min_text_length = IntegerField(null=True)  # максимальная длинна поста
     post_start_date = DateTimeField(null=True) # собирать посты от этой даты
     post_end_date = DateTimeField(null=True) # собирать посты до этой даты
-    check_mat = IntegerField(null=True)  # проверять ли на наличие мата
+    check_mat = IntegerField(default=0)  # проверять ли на наличие мата
     video_platform = IntegerField(null=True)  # проверять ли на соответствие видеоплатформе
+    del_hashtags = BooleanField(default=0)  # проверять ли на соответствие видеоплатформе
 
     class Meta:
         database = db  # this model uses the "people.db" database

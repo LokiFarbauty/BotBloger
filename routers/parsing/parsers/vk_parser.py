@@ -175,6 +175,13 @@ class Parser(ParserInterface):
                         if int(post_id)==12:
                             pass
                         try:
+                            # Проверка на рекламу
+                            ads = post['marked_as_ads']
+                            if ads == 1:
+                                continue
+                        except:
+                            pass
+                        try:
                             text = post['text']
                             text = text.strip()
                             text = await cls.__del_forbiden_tg_char(text)

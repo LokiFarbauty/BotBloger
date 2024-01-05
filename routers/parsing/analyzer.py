@@ -31,6 +31,7 @@ class AnalyzerParams:
     last_post_id: int = 0 #
     lematize: bool = True
     video_platform: int = 0 # С каких платформ собирать видео 0 - со всех
+    del_hashtags: bool = False # Удалять или нет хэштэги
 
 
 def check_video_platform(videos: list, video_platform: int)-> list:
@@ -92,24 +93,18 @@ def check_hashtags(hashtags_str, hashtags: list[str]) -> bool:
         if ht in hashtags:
             res = True
             return res
-    # if type(hashtags_str) is str:
-    #     hashtags_str = hashtags_str.replace('#', '')
-    #     # hashtags_str = hashtags_str.replace(', ', ',')
-    #     # hashtags_str = hashtags_str.split(',')
-    #     # hashtags_str = [x.lower() for x in hashtags_str]
-    #     # hashtags_str = [x.strip() for x in hashtags_str]
-    #     for hashtag in hashtags:
-    #         hashtag0 = hashtag.replace('#', '')
-    #         if hashtags_str.find(hashtag0) == -1:
-    #             res = False
-    #             return res
-    # elif type(hashtags_str) is list:
-    #     for hashtag in hashtags:
-    #         hashtag0 = hashtag.replace('#', '')
-    #         if hashtag0 not in hashtags_str:
-    #             res = False
-    #             return res
     return res
+
+def delete_hashtags(text: str) -> str:
+    '''Удаление из текста хэштегов'''
+    entity_prefixes = ['@', '#']
+    words = []
+    for word in text.split():
+        word = word.strip()
+        if word:
+            if word[0] not in entity_prefixes:
+                words.append(word)
+    return ' '.join(words)
 
 
 async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APost]:
@@ -119,9 +114,9 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
     res = []
     for i, post in enumerate(posts):
         # Анализируем длинну текст
-        if len(post.text) < params.min_text_len:
+        if len(posts[i].text) < params.min_text_len:
             continue
-        if len(post.text) > params.max_text_len:
+        if len(posts[i].text) > params.max_text_len:
             continue
         # Проверяем дату публикации поста
         if params.post_end_date != None and params.post_end_date != 0:
@@ -149,17 +144,20 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
                 post.videos = new_video
         # Если в тексте есть запрещенные слова то пропускаем
         if params.forbidden_words != None:
-            if not check_text(post.text, params.forbidden_words):
+            if not check_text(posts[i].text, params.forbidden_words):
                 continue
+        # Если необходимо удаляем из текста хэштеги
+        if params.del_hashtags:
+            posts[i].text = delete_hashtags(posts[i].text)
         # Проверяем текст на ключевые слова
         if not params.lematize:
             if params.key_words != None and params.key_words != '':
-                if not check_text_on_keywords_ex(post.text, params.key_words, params.key_words_mode):
+                if not check_text_on_keywords_ex(posts[i].text, params.key_words, params.key_words_mode):
                     continue
         else:
             if params.key_words != None and params.key_words != '':
                 lem_words = lematize_words(params.key_words)
-                migths = check_text_on_keywords(post.text, lem_words, normalize=True)
+                migths = check_text_on_keywords(posts[i].text, lem_words, normalize=True)
                 if params.key_words_mode == KeyWordsAnalyzeMode.Or:
                     cond = False
                     for migth in migths.values():
@@ -186,17 +184,17 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
             clear_words.extend(clear_words_low)
             clear_words.extend(clear_words_up)
             for cl_word in clear_words:
-                posts[i].text = post.text.replace(cl_word, '')
+                posts[i].text = posts[i].text.replace(cl_word, '')
         # Удаляем внутренние ссылки ВК
-        posts[i].text = re.sub(r'\[.+?\]\s', '', post.text)
+        posts[i].text = re.sub(r'\[.+?\]\s', '', posts[i].text)
         # Проверяем текст на уникальность по хэшу
         hash = hashlib.md5(posts[i].text.encode('utf-8'))
         hash_str = hash.hexdigest()
-        if post.text != VOID_TEXT_CHAR:
+        if posts[i].text != VOID_TEXT_CHAR:
             post_ex = Post.get_post(task_id=params.task_id, source_id=params.target_id, text_hash=hash_str)
             if post_ex != None:
                 continue
         posts[i].text_hash = hash_str
-        res.append(post)
+        res.append(posts[i])
     return res
 
