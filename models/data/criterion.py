@@ -9,6 +9,11 @@ class VideoPlatform(enum.Enum):
     OnlyYouTube = 2
     OnlyVK = 3
 
+class UrlAction(enum.Enum):
+    Accept = 0 # Оставлять ссылки
+    Ignore = 1 # С сылками не парсить
+    Delete = 2 # удалять ссылки
+
 
 class Criterion(Model):
     target_id = CharField(null=True) # id цели (для ВК)
@@ -27,6 +32,7 @@ class Criterion(Model):
     check_mat = IntegerField(default=0)  # проверять ли на наличие мата
     video_platform = IntegerField(null=True)  # проверять ли на соответствие видеоплатформе
     del_hashtags = BooleanField(default=0)  # проверять ли на соответствие видеоплатформе
+    url_action = IntegerField(default=0)  # Что делать с текстом в котором есть ссылки
 
     class Meta:
         database = db  # this model uses the "people.db" database

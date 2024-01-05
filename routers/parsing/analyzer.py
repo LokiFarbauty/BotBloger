@@ -8,7 +8,7 @@ import hashlib
 #
 
 from models.data.post import Post
-from models.data.criterion import VideoPlatform
+from models.data.criterion import VideoPlatform, UrlAction
 #
 from routers.parsing.text_analyze_tools import check_text_on_keywords, lematize_words
 from routers.parsing.parsing_config import VOID_TEXT_CHAR
@@ -35,7 +35,7 @@ class AnalyzerParams:
     lematize: bool = True
     video_platform: int = 0 # С каких платформ собирать видео 0 - со всех
     del_hashtags: bool = False # Удалять или нет хэштэги
-
+    url_action: int = 0  # что делать с постами в тексте которых есть ссылки
 
 def check_video_platform(videos: list, video_platform: int)-> list:
     '''Проверяет пост на соответсвие видеоплатвормы'''
@@ -113,6 +113,32 @@ def delete_hashtags(text: str) -> str:
                 words.append(word)
     return ' '.join(words)
 
+def check_url(text: str) -> bool:
+    res = True
+    if text.find('https:') != -1 or text.find('http:') != -1 or text.find('www.') != -1 or \
+    text.find('.com') != -1 or text.find('.ru') != -1 or text.find('club') != -1:
+        res = False
+    return res
+
+def clear_url(text: str) -> str:
+    '''Удаляет из текста ссылки'''
+    res = True
+    url_tags = ['https:', 'http:', 'www.', '.com', '.ru', 'club']
+    for tag in url_tags:
+        pos_s = 1
+        while pos_s != -1:
+            pos_s = text.find(tag)
+            if pos_s != -1:
+                pos_e = text.find(' ', pos_s)
+                if pos_e != -1:
+                    text1 = text[:pos_s]
+                    text2 = text[pos_e-1:]
+                    text = f'{text1}{text2}'
+                else:
+                    text = text[:pos_s]
+                    pos_s = -1
+    return text
+
 
 async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APost]:
     '''
@@ -149,6 +175,12 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
                 continue
             else:
                 post.videos = new_video
+        # Проверяем ссылки в тексте
+        if params.url_action == UrlAction.Delete.value:
+            posts[i].text = clear_url(posts[i].text)
+        if params.url_action == UrlAction.Ignore.value:
+            if not check_url(posts[i].text):
+                continue
         # Если в тексте есть запрещенные слова то пропускаем
         if params.forbidden_words != None:
             if not check_text(posts[i].text, params.forbidden_words):
