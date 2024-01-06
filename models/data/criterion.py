@@ -31,7 +31,7 @@ class Criterion(Model):
     post_end_date = DateTimeField(null=True) # собирать посты до этой даты
     check_mat = IntegerField(default=0)  # проверять ли на наличие мата
     video_platform = IntegerField(null=True)  # проверять ли на соответствие видеоплатформе
-    del_hashtags = BooleanField(default=0)  # проверять ли на соответствие видеоплатформе
+    del_hashtags = BooleanField(default=0)  # удалять хэштеги
     url_action = IntegerField(default=0)  # Что делать с текстом в котором есть ссылки
 
     class Meta:

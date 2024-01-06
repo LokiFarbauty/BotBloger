@@ -34,7 +34,10 @@ class Publicator(Model):
     parse_task = ForeignKeyField(ParseTask, backref='publicators', index=True, null=True)
     criterion = ForeignKeyField(Criterion, backref='tasks')  # ссылка на критерии выборки
     mode = IntegerField() # Режим публикации
-    period = IntegerField() # Период публикации
+    autostart = IntegerField(default=0) # Автозапуск 1 - да 0 нет
+    period = IntegerField(default=0) # Период публикации
+    start_public_hour = IntegerField(default=9)  # время начала публикаций
+    end_public_hour = IntegerField(default=20)  # время окончания публикаций
     range = IntegerField(null=True) # Для режима Marketing - диапазон лучших постов из которых выбирать случайный
     bot = ForeignKeyField(Bot, backref='publicators', index=True)
     telegraph_token = CharField()  # токен Телеграф

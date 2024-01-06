@@ -163,7 +163,7 @@ async def amain():
         else:
             bots_unit.current_bots[i].status = BotStatus.Stopped
     # Запускаем публикаторы
-    #await publicators_unit.init_current_publicators()
+    await publicators_unit.init_current_publicators()
     # Запускаем бесконечные задачи
     await asyncio.gather(*tasks)
 
