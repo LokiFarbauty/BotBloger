@@ -592,6 +592,46 @@ commands.append(
                                                               " Параметры: task_key_or_name, user_key = 1")
 )
 
+async def delete_post(post_key: int):
+    try:
+        post = Post.get_by_id(post_key)
+        # Удаляем картинки
+        photos = Photo.delete().where(Photo.owner == post)
+        photos.execute()
+        # Удаляем аудио
+        audios = Audio.select().where(Audio.owner == post)
+        for audio in audios:
+            audio_uploads = AudioUpload.select().where(AudioUpload.audio == audio)
+            for audio_upload in audio_uploads:
+                audio_upload.delete_instance()
+            audio.delete_instance()
+        # Удаляем видео
+        videos = Video.delete().where(Video.owner == post)
+        videos.execute()
+        # Удаляем линки
+        links = Link.delete().where(Link.owner == post)
+        links.execute()
+        # Удаляем доки
+        docs = Doc.delete().where(Doc.owner == post)
+        docs.execute()
+        # Удаляем опросы
+        polls = Poll.delete().where(Poll.owner == post)
+        polls.execute()
+        # Удаляем хэштэги
+        hashtags = Post_Hashtag.delete().where(Post_Hashtag.post == post)
+        hashtags.execute()
+        # Удаляем пост и текст
+        PostText.delete_by_id(post.get_id())
+        post.delete_instance()
+    except Exception as ex:
+        return f'Ошибка: {ex}.'
+    return f'Пост удален.'
+
+commands.append(
+     Command(name='delete_post', func=delete_post, args_num=0, help="Удалить пост из базы."
+                                                              " Параметры: post_key: int")
+)
+
 async def clear_posts_in_db():
     num = 0
     try:
@@ -627,8 +667,7 @@ async def clear_posts_in_db():
             PostText.delete_by_id(post.get_id())
             post.delete_instance()
     except Exception as ex:
-        print(ex)
-        return f'Удалено {num} постов.'
+        return f'Ошибка: {ex}.'
     return f'Удалено {num} постов.'
 
 commands.append(

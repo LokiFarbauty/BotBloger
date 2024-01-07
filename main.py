@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 # не удалять
 import routers.parsing.dispatcher as dispatcher
@@ -18,11 +19,8 @@ from routers.bots.telegram.bots import init_bots, BotStatus
 from models.data.bot import Bot as BotModel
 
 #
-
-
 # dialogs
 #from views.telegram.dialogs.dlg_start import dialog_start_menu
-
 
 
 
@@ -158,7 +156,7 @@ async def amain():
                 bots_unit.current_bots[i].status = BotStatus.InWork
             except Exception as ex:
                 bots_unit.current_bots[i].status = BotStatus.Broken
-                print(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
+                #print(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
                 app_loger.warning(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
         else:
             bots_unit.current_bots[i].status = BotStatus.Stopped
@@ -169,6 +167,7 @@ async def amain():
 
 if __name__ == '__main__':
     try:
+        logging.basicConfig(level=logging.CRITICAL)
         # Создаем диспетчер парсеров
         # Создаем ботов
         # current_bots = init_bots()

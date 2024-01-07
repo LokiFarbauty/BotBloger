@@ -17,3 +17,4 @@ app_loger = setup_logger('AppLoger', 'log.log') # логер приложени�
 bots_loger = setup_logger('BotsLoger', 'bots.log') # логер ботов
 parsers_loger = setup_logger('ParsersLoger', 'parsers.log') # логер парсинга
 publicators_loger = setup_logger('PublicatorsLoger', 'publicators.log') # логер публикаторов
+telegram_loger = setup_logger('TelegramLoger', 'telegram.log') # логер ошибок телеграма, обычно проблемы со связью

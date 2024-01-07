@@ -539,14 +539,18 @@ async def init_current_publicators():
     '''Инициализация публикаторов
     Загрузка данных из базы и запуск потоков публикаторов'''
     # Загружаем данные из базы
+    num = 0
     try:
         publicators_mld = Publicator.select().where(Publicator.autostart==1)
         for publicator_mld in publicators_mld:
             # Создаем задачу
             publicator_task = asyncio.create_task(publicating(publicator_mld), name=publicator_mld.name)
+            num+=1
             current_publicators_process.append(publicator_task)
+        #print(f'Запущено {num} публикаторов')
+        publicators_loger.info(f'Запущено {num} публикаторов.')
     except Exception as ex:
-        print(f'Ошибка инициализации публикаторов: {ex}')
+        #print(f'Ошибка инициализации публикаторов: {ex}')
         publicators_loger.error(f'Инициализация публикаторов не удалась. Ошибка {ex}')
 
 

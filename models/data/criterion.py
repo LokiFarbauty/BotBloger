@@ -2,6 +2,7 @@ from peewee import *
 import enum
 #
 from models.dm_config import db
+#
 
 class VideoPlatform(enum.Enum):
     All = 0

@@ -12,11 +12,14 @@ from aiogram.filters import ExceptionTypeFilter, CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
+from aiogram.handlers import ErrorHandler
+from aiogram.exceptions import TelegramNetworkError, TelegramServerError, TelegramRetryAfter
+from aiogram.types.error_event import ErrorEvent
 import enum
 
 # routers
 from routers.bots.errors import BotErrors
-from routers.bots.telegram.exceptions import on_unknown_state, on_outdated_intent
+from routers.bots.telegram.exceptions import on_unknown_state, on_outdated_intent, on_telegram_error
 from routers.logers import bots_loger, app_loger
 from routers.bots.bots_utills import get_tg_user_names
 from views.telegram.states import SG_enter_token_menu as start_dialog
@@ -68,6 +71,9 @@ class BotExt(Bot):
         dp.errors.register(self.on_unknown_intent, ExceptionTypeFilter(UnknownIntent), )
         dp.errors.register(on_unknown_state, ExceptionTypeFilter(UnknownState), )
         dp.errors.register(on_outdated_intent, ExceptionTypeFilter(OutdatedIntent), )
+        # dp.errors.register(on_telegram_error)
+        # , ExceptionTypeFilter(TelegramServerError),
+        #                            ExceptionTypeFilter(TelegramRetryAfter),
         # Регистрируем основные роутеры
         self.base_router: Router = Router()
         dp.include_router(self.base_router)
@@ -83,6 +89,12 @@ class BotExt(Bot):
         # Формируем меню команд бота
         #await set_command_menu(bot, menues.COMMAND_MENU)
         self.dispatcher = dp
+
+        # @self.base_router.error(ExceptionTypeFilter(TelegramNetworkError), F.update.message.as_("message"))
+        # async def handle_my_custom_exception(event: ErrorEvent, message: Message):
+        #     # do something with error
+        #     print("Oops, something went wrong!")
+
 
         @self.base_router.message(CommandStart())
         async def proc_start_command(message: Message, bot: Bot, dialog_manager: DialogManager):
@@ -228,6 +240,6 @@ async def init_bots():
             print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
             app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
             continue
-    app_loger.info(f'Количество ботов в базе: {len(bots)}')
-    print(f'Запущено {len(bots)} ботов.')
+    app_loger.info(f'Запущено {len(bots)} ботов.')
+    #print(f'Запущено {len(bots)} ботов.')
     return bots

@@ -82,21 +82,24 @@ async def parsing(task: ParseTask, show_progress = True):
         period = task.period
         while True:
             # Определяем счетчики
+            task_post_num = task.post_num
+            if task_post_num == 'all':
+                task_post_num = 0
             got_post_num = 0
             # Задаем режим
-            if (task.post_num == INFINITE) and ((task.period == 0) or (task.period == None)):
+            if (task_post_num == INFINITE) and ((task.period == 0) or (task.period == None)):
                 parsing_mode = ParsingMode.ARCHIVE
                 last_post_id = 0
                 source_post_count = await get_post_count_in_VK_source(task)
-            elif (task.post_num == 0) and ((task.period == 0) or (task.period == None)):
+            elif (task_post_num == 0) and ((task.period == 0) or (task.period == None)):
                 parsing_mode = ParsingMode.UPDATE_SINGLE
                 last_post_id = task.last_post_id
                 source_post_count = await get_post_count_in_VK_source(task)
-            elif (task.post_num > 0) and ((task.period == 0) or (task.period == None)):
+            elif (task_post_num > 0) and ((task.period == 0) or (task.period == None)):
                 parsing_mode = ParsingMode.COUNT
                 last_post_id = 0
-                source_post_count = task.post_num
-            elif (task.post_num == 0) and (task.period > 0):
+                source_post_count = task_post_num
+            elif (task_post_num == 0) and (task.period > 0):
                 parsing_mode = ParsingMode.UPDATE_PERIOD
                 last_post_id = task.last_post_id
                 source_post_count = await get_post_count_in_VK_source(task)
@@ -195,7 +198,7 @@ async def parsing(task: ParseTask, show_progress = True):
             # Обновляем данные задачи
             task = ParseTask.get_by_id(task.get_id())
             # Сохраняем состояние
-            await refresh_task_state(task, ParseTaskStates.InWork.value)
+            await refresh_task_state(task, ParseTaskStates.Sleep.value)
             await asyncio.sleep(period)
     except Exception as ex:
         await refresh_task_state(task, ParseTaskStates.Error.value, ex)
@@ -214,9 +217,9 @@ async def init_tasks():
                 parsing_dispatcher.tasks.append(asyncio.create_task(parsing(task), name=task.name))
                 task_num += 1
         except Exception as ex:
-            print(f'При запуске задачи {task.name} (key: {task.get_id()}) возникла ошибка: {ex}')
+            #print(f'При запуске задачи {task.name} (key: {task.get_id()}) возникла ошибка: {ex}')
             parsers_loger.error(f'При запуске задачи {task.name} (key: {task.get_id()}) возникла ошибка: {ex}')
             continue
     app_loger.info(f'Запущено {task_num} задач.')
-    print(f'Запущено {task_num} задач.')
+    #print(f'Запущено {task_num} задач.')
     return 0

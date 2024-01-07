@@ -73,11 +73,11 @@ async def put_post_to_telegraph(post: Post, telegraph_token, author_name='', aut
             title = tlink
         if title == '':
             pos = post_text.find('\n')
-            if pos == -1 or pos > 50:
+            if pos == -1 or pos > 100:
                 pos = post_text.find('.')
-            if pos == -1 or pos > 50:
+            if pos == -1 or pos > 100:
                 pos = post_text.find(' ')
-            if pos != -1 and pos <= 50:
+            if pos != -1 and pos <= 100:
                 title = post_text[:pos]
             else:
                 # Берем название из хэштэгов
