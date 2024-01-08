@@ -416,18 +416,22 @@ async def get_posts(condition, old_posts=None):
 
 async def get_random_posts(condition, old_posts=None):
     try:
-        posts_num = old_posts.select().where(condition).count()
+        #posts_num = old_posts.select().where(condition).count()
         if old_posts is None or type(old_posts) is list:
             posts = Post.select().where(condition).order_by(fn.Random()).limit(1)
         else:
             posts = old_posts.select().where(condition).order_by(fn.Random()).limit(1)
-    except:
+    except Exception as ex:
         posts = []
     return posts
 
 
 async def publicating(publicator: Publicator):
     '''Поток публикатора, в котором он периодически получает из базы посты и публикует их в канал'''
+    try:
+        await asyncio.sleep(int(publicator.delay))
+    except:
+        publicators_loger(f'Задержка публикатора {publicator.name} задана не правильно.')
     while True:
         try:
             # Проверяем время публикации

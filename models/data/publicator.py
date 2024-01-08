@@ -36,6 +36,7 @@ class Publicator(Model):
     mode = IntegerField() # Режим публикации
     autostart = IntegerField(default=0) # Автозапуск 1 - да 0 нет
     period = IntegerField(default=0) # Период публикации
+    delay = IntegerField(default=60) # Задержка публикации перед стартом публикатора
     start_public_hour = IntegerField(default=9)  # время начала публикаций
     end_public_hour = IntegerField(default=20)  # время окончания публикаций
     range = IntegerField(null=True) # Для режима Marketing - диапазон лучших постов из которых выбирать случайный
