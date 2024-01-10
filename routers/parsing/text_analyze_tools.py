@@ -69,7 +69,7 @@ def lematize_words(words: list[str]) -> list[str]:
     words = [x.strip() for x in words]
     for word in words:
         norm_word = morph.parse(word)
-        res.append(norm_word[-1].normal_form)
+        res.append(norm_word[0].normal_form)
     return res
 
 
@@ -112,4 +112,4 @@ def check_text_on_keywords(text: str, keywords: list, normalize=True):
                 mights[keyword]+=1
         return mights
     except Exception as ex:
-        return -1
+        return ex

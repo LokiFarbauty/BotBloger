@@ -211,7 +211,7 @@ class Parser(ParserInterface):
                         except Exception as ex:
                             pass
                         if text == '': text = VOID_CHAR
-                        if text == 'Запись удалена ' or text == 'Запись удалена':
+                        if text.find('Запись удалена') != -1:
                             continue
                         hashtags = await cls.__get_hashtags(text)
                         #

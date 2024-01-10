@@ -197,6 +197,8 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
             if params.key_words != None and params.key_words != '':
                 lem_words = lematize_words(params.key_words)
                 migths = check_text_on_keywords(posts[i].text, lem_words, normalize=True)
+                if type(migths) is not dict:
+                    raise ValueError(migths)
                 if params.key_words_mode == KeyWordsAnalyzeMode.Or:
                     cond = False
                     for migth in migths.values():

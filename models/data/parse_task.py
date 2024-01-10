@@ -10,7 +10,7 @@ from models.data.criterion import Criterion
 class ParseTaskStates(enum.Enum):
     Stopped = 0  # задача остановлена
     InWork = 1  # задача в работе
-    Sleep = 2  # завершено с ошибкой
+    Sleep = 2  # ждет
     Ended = 3 # завершено успешно
     Error = 4 # завершено с ошибкой
 

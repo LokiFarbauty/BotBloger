@@ -154,7 +154,7 @@ class ParserDispatcher:
                 task.save()
             task_process = self.get_task_process(taskname)
             if task_process == None:
-                self.tasks.append(asyncio.create_task(func(task), name=taskname))
+                self.tasks.append(asyncio.create_task(func(task, quick_start=True), name=taskname))
                 return f'Задача "{taskname}" запущена.'
             else:
                 task_status = self.get_task_status(taskname)

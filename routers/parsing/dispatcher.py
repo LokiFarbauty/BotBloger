@@ -21,6 +21,7 @@ import asyncio
 import aiohttp
 from tqdm import tqdm
 import enum
+import random
 
 # const
 INFINITE = 'all'
@@ -65,8 +66,12 @@ async def get_post_count_in_VK_source(task: ParseTask):
             f'get_post_count_in_VK_source(task={task.get_id()}). Ошибка: {ex}')
         return 0
 
-async def parsing(task: ParseTask, show_progress = True):
+async def parsing(task: ParseTask, show_progress = True, quick_start=False):
     try:
+        # Ждем немного
+        delay = random.randrange(start=120, stop=3600)
+        if not quick_start: await asyncio.sleep(delay)
+        #
         task.state = ParseTaskStates.InWork.value
         task.error = None
         task.save()
