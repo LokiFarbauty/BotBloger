@@ -139,7 +139,7 @@ async def parsing(task: ParseTask, show_progress = True, quick_start=False):
                 # Если ничего не спарсили дальше не парсим
                 if type(parse_res) is not list:
                     # Ошибка при получении данных из ВК
-                    parsers_loger.error(f'При выполнение задачи "{task.name}" произошла ошибка: {parse_res}')
+                    parsers_loger.error(f'При выполнение задачи "{task.name}" произошла ошибка: {parse_res} (break)')
                     #print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
                     break
                 if parse_res == []:
@@ -207,7 +207,7 @@ async def parsing(task: ParseTask, show_progress = True, quick_start=False):
             await asyncio.sleep(period)
     except Exception as ex:
         await refresh_task_state(task, ParseTaskStates.Error.value, ex)
-        err_str = f'При выполнении задачи {task.name} (key: {task.get_id()}) произошла ошибка: {ex}. Задача остановлена.'
+        err_str = f'При выполнении задачи {task.name} (key: {task.get_id()}), got_post_num: {got_post_num}, posts_got: {posts_got},  произошла ошибка: {ex}. Задача остановлена.'
         parsers_loger.error(err_str)
 
 

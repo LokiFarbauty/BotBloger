@@ -297,7 +297,8 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                 if publicator.author_caption != None:
                     sum_len = post_text_len + len(publicator.author_caption)
                     if sum_len < 1023:
-                        post_text = f'{post_text}\n{publicator.author_caption}'
+                        #post_text = f'{post_text}\n{publicator.author_caption}'
+                        pass
             except:
                 pass
             # Готовим картинку (при наличии)
@@ -426,7 +427,7 @@ async def get_random_posts(condition, old_posts=None):
     return posts
 
 
-async def publicating(publicator: Publicator, debug=True):
+async def publicating(publicator: Publicator, debug=False):
     '''Поток публикатора, в котором он периодически получает из базы посты и публикует их в канал'''
     try:
         if debug: publicators_loger.info(f'Публикатор {publicator.name} готов к старту. Задержка {publicator.delay} сек.')
@@ -437,19 +438,19 @@ async def publicating(publicator: Publicator, debug=True):
     while True:
         try:
             # Спим 5 секунд
-            await asyncio.sleep(5)
+            await asyncio.sleep(10)
             # Проверяем время публикации
             start_public_hour = publicator.start_public_hour
             end_public_hour = publicator.end_public_hour
             cur_time = datetime.now().time().hour
-            if debug: publicators_loger.info(f'Публиктор {publicator.name}. Запущен новый цикл проверки. Текущий час: {cur_time}. Границы времени публикации от {start_public_hour} до {end_public_hour}.')
+            period = publicator.period
+            if debug: publicators_loger.info(f'Публикатор {publicator.name}. Запущен новый цикл проверки. Текущий час: {cur_time}. Границы времени публикации от {start_public_hour} до {end_public_hour}.')
             if cur_time >= start_public_hour and cur_time <= end_public_hour:
                 # Обновляем статус
                 publicator.state = PublicatorStates.Working.value
                 publicator.save()
-                period = publicator.period
                 if debug: publicators_loger.info(
-                    f'Публиктор {publicator.name}. Время публикации. Текущий час: {cur_time}. Период задержки {period} сек ({period/60/60} часа).')
+                    f'Публикатор {publicator.name}. Время публикации. Текущий час: {cur_time}. Период задержки {period} сек ({period/60/60} часа).')
                 # Получаем посты
                 posts=[]
                 try:
@@ -506,12 +507,12 @@ async def publicating(publicator: Publicator, debug=True):
                         pass
                 # Размещаем посты
                 if debug: publicators_loger.info(
-                    f'Публиктор {publicator.name}. Условие выборки поста сформировано. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                    f'Публикатор {publicator.name}. Условие выборки поста сформировано. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                 for post in posts:
                     try:
                         #print(post.get_id())
                         if debug: publicators_loger.info(
-                            f'Публиктор {publicator.name}. Начало просмотра выбраных постов. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                            f'Публикатор {publicator.name}. Начало просмотра выбраных постов. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                         post_text_key = post.text
                         post_text_mld = PostText.get_by_id(post_text_key)
                         post_text = post_text_mld.text
@@ -519,37 +520,37 @@ async def publicating(publicator: Publicator, debug=True):
                         if publicator.criterion.forbidden_words != None and publicator.criterion.forbidden_words != '':
                             if not check_text(post_text, publicator.criterion.forbidden_words):
                                 if debug: publicators_loger.info(
-                                    f'Публиктор {publicator.name}. Пост {post.get_id()} не подходит - запрещенные слова. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                                    f'Публикатор {publicator.name}. Пост {post.get_id()} не подходит - запрещенные слова. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                                 continue
                         # Проверяем текст на мат
                         if publicator.criterion.check_mat != None and publicator.criterion.check_mat != 0:
                             if check_mat_in_text(post_text):
                                 if debug: publicators_loger.info(
-                                    f'Публиктор {publicator.name}. Пост {post.get_id()} не подходит - мат. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                                    f'Публикатор {publicator.name}. Пост {post.get_id()} не подходит - мат. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                                 continue
                         if debug: publicators_loger.info(
-                            f'Публиктор {publicator.name}. Публикуем пост {post.get_id()}. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                            f'Публикатор {publicator.name}. Публикуем пост {post.get_id()}. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                         res = await public_post_to_channel(publicator, post)
                         if res == PublicateErrors.BotError:
                             # Критическая ошибка публикации, останавливаем публикатор
                             publicator.state = PublicatorStates.Stopped_Error.value
                             publicator.save()
                             if debug: publicators_loger.info(
-                                f'Публиктор {publicator.name}. Пост {post.get_id()} - критическая ошибка бота, публикатор остановлен. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                                f'Публикатор {publicator.name}. Пост {post.get_id()} - критическая ошибка бота, публикатор остановлен. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                             return
                         if publicator.mode == PublicatorModes.New.value:
                             publicator.last_post_id = post.post_id
                             publicator.save()
                             if debug: publicators_loger.info(
-                                f'Публиктор {publicator.name}. Режим публикатора "Новые". Сохраняем последний id поста. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                                f'Публикатор {publicator.name}. Режим публикатора "Новые". Сохраняем последний id поста. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                         else:
                             # Если не новые то прекращаем размещения до следующего периода
                             if debug: publicators_loger.info(
-                                f'Публиктор {publicator.name}. Режим одиночный - другие посты не размещаем. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                                f'Публикатор {publicator.name}. Режим одиночный - другие посты не размещаем. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                             break
                         # пауза между публикациями
                         if debug: publicators_loger.info(
-                            f'Публиктор {publicator.name}. Пауза между публикациями. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                            f'Публикатор {publicator.name}. Пауза между публикациями. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                         await asyncio.sleep(3)
                     except Exception as ex:
                         publicators_loger.error(f'Ошибка публикатора "{publicator.name}" при публикации поста {post.get_id()}: {ex}')
@@ -557,7 +558,7 @@ async def publicating(publicator: Publicator, debug=True):
             # Спим
             if period > 0:
                 if debug: publicators_loger.info(
-                    f'Публиктор {publicator.name}. Спим указанный период. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                    f'Публикатор {publicator.name}. Спим указанный период. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                 await asyncio.sleep(period)
             else:
                 publicator.state = PublicatorStates.Done.value
