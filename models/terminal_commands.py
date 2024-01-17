@@ -1,7 +1,6 @@
 '''Команды для терминала, он заберает их отсюда'''
 # py
 from datetime import datetime
-from aiogram import Bot as aioBot
 
 # models
 from models.data.bot import Bot, BotStates
@@ -34,7 +33,8 @@ from routers.bots.telegram import bots
 import routers.bots.telegram.bots as bots_unit
 
 # views
-from views.telegram.dialogs_dispatcher import bot_dialogs
+#from views.telegram.tmp.dialogs_dispatcher import bot_dialogs
+from views.telegram.none_interface.dialogs_dispatcher import BotView
 
 commands = []
 
@@ -109,6 +109,7 @@ async def create_test_bot(user_id: int = 0):
         element.save()
         # Запускаем бот
         try:
+            bot_dialogs = BotView.dialogs
             bot = bots.BotExt(test_token, 'HTML', 1, 1, *bot_dialogs)
             bots_unit.current_bots.append(bot)
             try:
@@ -149,6 +150,7 @@ async def create_bot(user_tg_id: int, token: str, active=True):
         element.save()
         # Запускаем бот
         try:
+            bot_dialogs = BotView.dialogs
             bot = bots.BotExt(token, 'HTML', 1, 1, *bot_dialogs)
             bots_unit.current_bots.append(bot)
             try:

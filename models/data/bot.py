@@ -21,6 +21,7 @@ class Bot(Model):
     state = IntegerField() # состояние бота
     public = BooleanField()  # доступен ли бот для всех, ели нет то доступ будет только у пользователя
     db_file = TextField()
+    interface = CharField(default='None') # Интерефейс бота
     class Meta:
         database = db
 

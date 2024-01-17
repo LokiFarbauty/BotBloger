@@ -23,7 +23,7 @@ class User_Bot(Model):
             return None
 
     @classmethod
-    def check_user(cls, bot, user_tg_id: int, username: str = '', firstname='', lastname=''):
+    def check_user(cls, bot = None, user_tg_id: int = 0, username: str = '', firstname='', lastname=''):
         user = User.get_user(user_tg_id=user_tg_id)
         ts_now = datetime.now().replace(microsecond=0)
         ts_now = ts_now.timestamp()

@@ -12,18 +12,11 @@ from aiogram.filters import ExceptionTypeFilter, CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
-from aiogram.handlers import ErrorHandler
-from aiogram.exceptions import TelegramNetworkError, TelegramServerError, TelegramRetryAfter
-from aiogram.types.error_event import ErrorEvent
 import enum
 
 # routers
-from routers.bots.errors import BotErrors
-from routers.bots.telegram.exceptions import on_unknown_state, on_outdated_intent, on_telegram_error
 from routers.logers import bots_loger, app_loger
 from routers.bots.bots_utills import get_tg_user_names
-from views.telegram.states import SG_enter_token_menu as start_dialog
-from views.telegram.states import SG_bot_config
 
 # models
 from models.data.user_bot import User_Bot
@@ -33,7 +26,12 @@ from models.data.user import User
 from models.data_model import get_elements
 
 # views
-from views.telegram.dialogs_dispatcher import bot_dialogs
+#from views.telegram.tmp.dialogs_dispatcher import bot_dialogs
+#from views.telegram.interface_dispather import bot_interfaces
+from views.telegram.none_interface.dialogs_dispatcher import BotView
+
+# удалить
+from views.telegram.none_interface.dialogs.start_dialog import Dialog_state
 
 current_bots = []
 
@@ -45,7 +43,7 @@ class BotStatus(enum.Enum):
     Broken = 'сломался'
 
 class BotExt(Bot):
-    def __init__(self, token: str, parse_mode: str, active: int, public: int, *routers: Router):
+    def __init__(self, token: str, parse_mode: str, active: int, public: int, interface_name: str, *routers: Router):
         self.name = ''
         self.url = ''
         self.tg_id = 0
@@ -69,8 +67,8 @@ class BotExt(Bot):
         if len(routers) > 0:
             self.dialog_router.include_routers(*routers)
         dp.errors.register(self.on_unknown_intent, ExceptionTypeFilter(UnknownIntent), )
-        dp.errors.register(on_unknown_state, ExceptionTypeFilter(UnknownState), )
-        dp.errors.register(on_outdated_intent, ExceptionTypeFilter(OutdatedIntent), )
+        dp.errors.register(self.on_unknown_state, ExceptionTypeFilter(UnknownState), )
+        dp.errors.register(self.on_outdated_intent, ExceptionTypeFilter(OutdatedIntent), )
         # dp.errors.register(on_telegram_error)
         # , ExceptionTypeFilter(TelegramServerError),
         #                            ExceptionTypeFilter(TelegramRetryAfter),
@@ -98,15 +96,15 @@ class BotExt(Bot):
 
         @self.base_router.message(CommandStart())
         async def proc_start_command(message: Message, bot: Bot, dialog_manager: DialogManager):
-            # Проверяем зарегистрирован ли пользователь
             try:
-                #await message.answer('Доступен', reply_markup=ReplyKeyboardRemove())
+                # Проверяем зарегистрирован ли пользователь
                 user_id = message.from_user.id
                 username, firstname, lastname = get_tg_user_names(message.from_user)
                 # Получаем бота из базы
                 bot_obj = BotModel.get_obj(bot.token)
                 if type(bot_obj) is not BotModel:
-                    bots_loger.critical(f'Не удалось обновить информацию о боте: {bot.token}')
+                    bots_loger.critical(f'Бот: {bot.token} в базе не найден.')
+                    return
                 # Проверяем пользователя
                 user = User_Bot.check_user(bot_obj, user_id, username, firstname, lastname)
                 #print(await bot.get_my_name())
@@ -116,48 +114,49 @@ class BotExt(Bot):
                     await dialog_manager.reset_stack()
                 except:
                     pass
-                #
+                # Обновляем информацию о боте
                 try:
                     bot_info = await bot.get_me()
-                    bot_url = bot_info.username
-                    bot_name = bot_info.full_name
-                    #bot_obj = bot_obj.refresh_bot_info(name=bot_name, url=bot_url, tg_id=bot_info.id)
                     bot_obj = bot_obj.refresh_bot_info(name=bot_info.first_name, url=bot_info.username, tg_id=bot_info.id,
                                       state=BotStates.InWork.value)
                 except Exception as ex:
-                    pass
-                # Проверяем есть ли у пользователя парсерер
-                user_mld = User.get_user(user_key=user.id)
-                parser = Parser.get_parser(user=user_mld)
-                if parser != None:
-                    # Парсер уже создан выводим меню управления.
-                    await dialog_manager.start(SG_bot_config.show_menu, mode=StartMode.RESET_STACK, data={'user': user})
-                else:
-                    await dialog_manager.start(start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
+                    bots_loger(f'Не удалось обновить информацию о боте: {bot_obj.get_id()}. Ошибка: {ex}')
+                # Переадресовываем пользователя на точку входа интерфейса
+                #await dialog_manager.start(SG_bot_config.show_menu, mode=StartMode.RESET_STACK, data={'user': user})
+                await dialog_manager.start(Dialog_state.start, mode=StartMode.RESET_STACK, data={'user': user})
             except Exception as ex:
-                bots_loger.error(f"CommandStart(): {ex}")
+                try:
+                    bots_loger.error(f"Ошибка CommandStart() в боте {bot_obj.get_id()}: {ex}")
+                except:
+                    pass
 
         @self.base_router.message(Command('back'))
         async def proc_back_command(message: Message, bot: Bot, dialog_manager: DialogManager):
             # Проверяем зарегистрирован ли пользователь
             try:
-                # Проверяем зарегистрирован ли пользователь
-                user_id = message.from_user.id
-                username, firstname, lastname = get_tg_user_names(message.from_user)
-                user = User_Bot.check_user(bot.token, user_id, username, firstname, lastname)
-                await dialog_manager.done()
+                # # Проверяем зарегистрирован ли пользователь
+                # user_id = message.from_user.id
+                # username, firstname, lastname = get_tg_user_names(message.from_user)
+                # # Получаем бота из базы
+                # bot_obj = BotModel.get_obj(bot.token)
+                # if type(bot_obj) is not BotModel:
+                #     bots_loger.critical(f'Не удалось обновить информацию о боте: {bot.token}')
+                # # Проверяем наличие связи пользователя с ботом
+                # user = User_Bot.check_user(bot_obj, user_id, username, firstname, lastname)
+                await dialog_manager.back()
             except Exception as ex:
                 bots_loger.error(f"Command('back'): {ex}")
 
         @self.other_router.message(F.text)
         async def proc_other_mess(message: Message, bot: Bot, dialog_manager: DialogManager):
             try:
-                # Проверяем зарегистрирован ли пользователь
-                user_id = message.from_user.id
-                username, firstname, lastname = get_tg_user_names(message.from_user)
-                user = User_Bot.check_user(bot.token, user_id, username, firstname, lastname)
-                # Выводим диалог
-                await dialog_manager.start(start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
+                pass
+                # # Проверяем зарегистрирован ли пользователь
+                # user_id = message.from_user.id
+                # username, firstname, lastname = get_tg_user_names(message.from_user)
+                # user = User_Bot.check_user(bot.token, user_id, username, firstname, lastname)
+                # # Выводим диалог
+                # await dialog_manager.start(start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
             except Exception as ex:
                 bots_loger.error(f"F.text: {ex}")
 
@@ -166,6 +165,24 @@ class BotExt(Bot):
         # logger.error(f'Сработало исключение: неизвестный замысел: {event.exception}!')
         # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
         pass
+
+    async def on_unknown_state(event, dialog_manager: DialogManager):
+        """Example of handling UnknownState Error and starting new dialog."""
+        # logging.error("Restarting dialog: %s", event.exception)
+        # logger.error(f'Сработало исключение: неизвестное состояние: {event.exception}!')
+        # print('Error: on_unknown_state')
+        # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
+        pass
+
+    async def on_outdated_intent(event, dialog_manager: DialogManager):
+        """Example of handling UnknownState Error and starting new dialog."""
+        try:
+            # await dialog_manager.done()
+            await dialog_manager.reset_stack()
+            # logger.error(f'Сработало исключение: on_outdated_intent: {event.exception}!')
+        except:
+            pass
+        # await dialog_manager.start(states.SG_start_menu.start, mode=StartMode.RESET_STACK)
 
     async def start_polling(self):
         # Запускаем прослушивание бота
@@ -215,7 +232,8 @@ async def init_bots():
     for mbot in mbots:
         # Настраиваем бота
         try:
-            bot = BotExt(mbot.token, mbot.parse_mode, mbot.active, mbot.public, *bot_dialogs)
+            bot_dialogs = BotView.dialogs
+            bot = BotExt(mbot.token, mbot.parse_mode, mbot.active, mbot.public, 'None', *bot_dialogs)
             # проверяем работоспособность ботов
             try:
                 bot_info = await bot.get_me()

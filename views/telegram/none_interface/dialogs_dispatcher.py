@@ -1,25 +1,31 @@
 '''Модуль при импорте автоматически подгружает и привязывает к боту все диалоги изпапки dialogs'''
 
+'''Модуль при импорте автоматически подгружает и привязывает к боту все диалоги изпапки dialogs'''
+
 import os
 import importlib
 import inspect
+from aiogram.fsm.state import State, StatesGroup
 from aiogram_dialog import Dialog
-
-from main_config import MAIN_PATH
-
-from routers.logers import app_loger
+#
+from routers.logers import bots_loger
+#
+from views.telegram.interface_pattern import BotViewInterface
+# удалить
+from views.telegram.none_interface.dialogs.start_dialog import Dialog_state
 
 #dlg_path = MAIN_PATH
 dlg_path = os.path.dirname(os.path.abspath(__file__))+'\\dialogs\\' # путь к файлам диалогов
-py_dlg_path = 'views.telegram.dialogs'
+py_dlg_path = 'views.telegram.none_interface.dialogs'
+
 
 def get_dialogs(path=dlg_path, py_path=py_dlg_path):
     dialogs_lst = []
     # проверяем директорию
     if not os.path.isdir(path):
-        app_loger.critical(
+        bots_loger.critical(
             f'Невозможно получить диалоги для ботов: отсутствует директория {path}')
-        app_loger.info(f'Создание диалогов прервано.')
+        bots_loger.info(f'Создание диалогов прервано.')
         return dialogs_lst
     # Получаем список файлов в папке диалогов
     dialog_files = os.listdir(path)
@@ -44,7 +50,17 @@ def get_dialogs(path=dlg_path, py_path=py_dlg_path):
                 if att_dlg not in dialogs_lst:
                     dialogs_lst.append(att_dlg)
         except Exception as ex:
-            app_loger.error(f'Ошибка загрузки диалога {dlg_file}: {ex}')
+            bots_loger.error(f'Ошибка загрузки диалога {dlg_file}: {ex}')
     return dialogs_lst
 
-bot_dialogs = get_dialogs()
+
+class BotView(BotViewInterface):
+    file = os.path.abspath(__file__)
+    dialogs = get_dialogs()
+    #start_dialog: Dialog = dialogs[0]
+    #start_state_group: StatesGroup = Dialog_state
+    #start_state: State = start_state_group.start
+    pass
+
+
+
