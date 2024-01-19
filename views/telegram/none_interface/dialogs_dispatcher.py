@@ -11,7 +11,7 @@ from aiogram_dialog import Dialog
 from routers.logers import bots_loger
 #
 from views.telegram.interface_pattern import BotViewInterface
-# удалить
+# Диалоги
 from views.telegram.none_interface.dialogs.start_dialog import Dialog_state
 
 #dlg_path = MAIN_PATH
@@ -62,24 +62,11 @@ class BotView(BotViewInterface):
     dialogs = get_dialogs()
     start_dialog_name = 'Dialog_state'
     start_state_name = f'{start_dialog_name}:start'
-    start_dialog = None
-    start_state = None
-    # Ищем стартовый диалог
-    try:
-        for dialog in dialogs:
-            if dialog.name == start_dialog_name:
-                start_dialog = dialog
-                break
-        # Указываем стартовое состояние
-        keys = start_dialog.windows.keys()
-        for i in keys:
-                if start_dialog.windows[i].state == start_state_name:
-                    start_state = start_dialog.windows[i]
-                    break
-    except Exception as ex:
-        start_dialog: StatesGroup = None
-        start_state = None
+    start_dialog = Dialog_state
+    #start_state = Dialog_state.start
     pass
+    # Ищем стартовый диалог
+
 
 
 

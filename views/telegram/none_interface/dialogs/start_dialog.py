@@ -3,7 +3,7 @@ from aiogram_dialog import (
     Dialog, DialogManager, Window,
 )
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import SwitchTo, Start, Next
+from aiogram_dialog.widgets.kbd import SwitchTo, Start, Next, Back
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram.fsm.state import State, StatesGroup
 # routers
@@ -26,7 +26,7 @@ class Dialog_state(StatesGroup):
 async def getter_start(**_kwargs):
     pass
     return {
-        "greeting": 'Это тестовый интерфейс',
+        "greeting": 'Добрый день. Этот бот подключен к системе администрирования телеграм-каналов "Бот-блогер".',
     }
 
 async def getter_contacts(**_kwargs):
@@ -40,13 +40,13 @@ dialog_start = Dialog(
         Format('{greeting}'),
         #Back(Const(BUTTONS['назад']), id="btn_why_token_back"),
         #SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.start),
-        Next(Const('💬 Контакты'), id="btn_to_contacts"),
+        Next(Const('💬 Связь с администратором'), id="btn_to_contacts"),
         getter=getter_start,
         state=Dialog_state.start,
     ),
     Window(
         Format('{greeting}'),
-        # Back(Const(BUTTONS['назад']), id="btn_why_token_back"),
+        Back(Const('Назад'), id="btn_why_token_back"),
         #SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.start),
         getter=getter_contacts,
         state=Dialog_state.contacts,

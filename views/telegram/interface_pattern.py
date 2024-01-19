@@ -6,8 +6,8 @@ class BotViewInterface(ABC):
     description = 'Этот интерфейс шаблон любого интерфейса бота.'
     file = ''
     dialogs = [] # Диалоги
-    #start_dialog: StatesGroup = None
-    #start_state: State = None
+    start_dialog: StatesGroup = None
+    #start_state: State = None # !!! в определенном диалоге всегда первым будет запускаться State - start оно должно быть обязательно
 
     # @classmethod
     # @abstractmethod

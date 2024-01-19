@@ -124,9 +124,11 @@ class BotExt(Bot):
                 # Переадресовываем пользователя на точку входа интерфейса
                 #await dialog_manager.start(SG_bot_config.show_menu, mode=StartMode.RESET_STACK, data={'user': user})
                 # получаем интерфейс бота
+                if bot_obj.interface == None:
+                    bot_obj.interface = 'None'
                 bot_interface = get_bot_interface(bot_obj.interface)
                 if bot_interface != None:
-                    await dialog_manager.start(bot_interface.start_state, mode=StartMode.RESET_STACK, data={'user': user})
+                    await dialog_manager.start(bot_interface.start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
             except Exception as ex:
                 try:
                     bots_loger.error(f"Ошибка CommandStart() в боте {bot_obj.get_id()}: {ex}")

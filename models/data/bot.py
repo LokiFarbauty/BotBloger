@@ -13,13 +13,13 @@ class BotStates(enum.Enum):
 class Bot(Model):
     user = ForeignKeyField(User, backref='bots', index=True)
     token = TextField()
-    parse_mode = CharField()
+    parse_mode = CharField(default='HTML')
     name = TextField()
     url = TextField()
     tg_id = IntegerField()
-    active = BooleanField() # Переменная автозапуска для бота
-    state = IntegerField() # состояние бота
-    public = BooleanField()  # доступен ли бот для всех, ели нет то доступ будет только у пользователя
+    active = BooleanField(default=0) # Переменная автозапуска для бота
+    state = IntegerField(default=0) # состояние бота
+    public = BooleanField(default=False)  # доступен ли бот для всех, ели нет то доступ будет только у пользователя
     db_file = TextField()
     interface = CharField(default='None') # Интерефейс бота
     class Meta:
