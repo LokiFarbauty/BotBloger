@@ -71,3 +71,12 @@ class ParseTask(Model):
     def save_last_post_id(self, last_post_id: int):
         self.last_post_id = last_post_id
         self.save()
+
+    async def refresh_task_state(self, state, error=None):
+        # Обновление состояния задачи
+        try:
+            self.state = state
+            self.error = error
+            self.save()
+        except:
+            pass

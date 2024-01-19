@@ -24,7 +24,7 @@ from models.data.post_text_FTS import PostText
 
 # routers
 from routers.bots.telegram.bots import get_BotExt, BotStatus
-from routers.logers import publicators_loger
+from routers.logers import publicators_loger, app_loger
 from routers.publicate.telegraph_tools import put_post_to_telegraph
 from routers.parsing.analyzer import check_text
 
@@ -205,6 +205,7 @@ def start_publicator_process(publicator: Publicator):
 
 
 async def public_post_to_channel(publicator: Publicator, post: Post, save_last_post_id = False):
+    # Опубликовать пост в канале
     try:
         post_key = post.get_id()
         # Получаем id канала
@@ -575,18 +576,22 @@ async def init_current_publicators():
     Загрузка данных из базы и запуск потоков публикаторов'''
     # Загружаем данные из базы
     num = 0
+    print(f'Запуск публикаторов...')
+    app_loger.info(f'Запуск публикаторов...')
     try:
         publicators_mld = Publicator.select().where(Publicator.autostart==1)
         for publicator_mld in publicators_mld:
             # Создаем задачу
             publicator_task = asyncio.create_task(publicating(publicator_mld), name=publicator_mld.name)
+            print(f'Запущен публикатор <{publicator_mld.name}>.')
+            app_loger.info(f'Запущен публикатор <{publicator_mld.name}>.')
             num+=1
             current_publicators_process.append(publicator_task)
-        #print(f'Запущено {num} публикаторов')
-        publicators_loger.info(f'Запущено {num} публикаторов.')
+        print(f'Запущено {num} публикаторов.')
+        app_loger.info(f'Запущено {num} публикаторов.')
     except Exception as ex:
-        #print(f'Ошибка инициализации публикаторов: {ex}')
-        publicators_loger.error(f'Инициализация публикаторов не удалась. Ошибка {ex}')
+        print(f'Инициализация публикаторов не удалась. Ошибка {ex}.')
+        app_loger.error(f'Инициализация публикаторов не удалась. Ошибка {ex}.')
 
 
 

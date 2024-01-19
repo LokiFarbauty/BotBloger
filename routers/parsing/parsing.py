@@ -1,19 +1,13 @@
-'''Этот модуль содержит глобальные объекты - диспетчер парсеров.
-Он отвечает за автоматическую подгрузку парсеров из папки parsers.
-Парсеры подгружаются при создании объекта ParserDispatcher и дальше хранятся в нем'''
+
 
 # routers
-from routers.parsing.parsing_dispatсher import ParserDispatcher, ASTaskStatus
 from routers.logers import parsers_loger, app_loger
 from routers.parsing.analyzer import analyze_posts, AnalyzerParams
 from routers.parsing.interface_parser import ParserInterface, ParseParams, ParserInterfaceReturns, APost
 from routers.parsing.parsing_config import PARSE_VK_POST_NUM, PARSE_VK_MAX_TEXT_LEN
 
 # models
-from models.data_model import get_elements
 from models.data.parse_task import ParseTask, ParseTaskStates, ParseTaskActive
-from models.data.parser import Parser
-from models.data.post import Post
 from models.saver import save_posts
 
 # py
@@ -26,9 +20,6 @@ import random
 # const
 INFINITE = 'all'
 
-
-parsing_dispatcher = ParserDispatcher(parsers_loger)
-
 class ParsingMode(enum.Enum):
     ARCHIVE = 'архив' # не указан период - количество постов INFINITE
     UPDATE_SINGLE = 'разовое обновление' # не указан период - количество постов 0
@@ -36,20 +27,13 @@ class ParsingMode(enum.Enum):
     COUNT = 'заданное количество' # не указан период - задано количество постов
     UNKNOWN = 'не определн'  # в противном случае
 
-async def refresh_task_state(task: ParseTask, state, error = None):
-    try:
-        task.state = state
-        task.error = error
-        task.save()
-    except:
-        pass
 
-async def get_post_count_in_VK_source(task: ParseTask):
+async def get_post_count_in_VK_source(parser: ParserInterface, task: ParseTask):
     try:
         post_count = 1
         group_info = None
         token = task.parser.token
-        parser = parsing_dispatcher.get_parser(task.parser.platform)
+        #parser = parsing_dispatcher.get_parser(task.parser.platform)
         if parser != None:
             params = ParseParams(target_id=task.target_id, target_type=task.target_type, token=token, post_count=1,
                                  filter=task.filter, use_free_proxy=False)
@@ -66,8 +50,29 @@ async def get_post_count_in_VK_source(task: ParseTask):
             f'get_post_count_in_VK_source(task={task.get_id()}). Ошибка: {ex}')
         return 0
 
-async def parsing(task: ParseTask, show_progress = True, quick_start=False):
+#async def parsing(task: ParseTask, parser: ParserInterface, quick_start = False, infinite_def = INFINITE):
+async def parsing(**_kwargs):
+    '''
+    Функуия выполняет полный цикл парсинга:
+    - получение постов парсером
+    - анализ, полученных постов
+    - сохранение подходящих постов
+
+    Args:
+        task (): модель задачи из базы
+        parser (): парсер
+        quick_start (): если установлено, то задача запускается без задержки
+        infinite_def (): обозначение бесконечного количества постов для парсинга стандартно - all
+
+    Returns:
+
+    '''
     try:
+        # Получаем параметры
+        task = _kwargs['task']
+        quick_start = _kwargs['quick_start']
+        infinite_def = _kwargs['infinite_def']
+        parser = _kwargs['parser']
         # Ждем немного
         delay = random.randrange(start=120, stop=3600)
         if not quick_start: await asyncio.sleep(delay)
@@ -76,14 +81,13 @@ async def parsing(task: ParseTask, show_progress = True, quick_start=False):
         task.error = None
         task.save()
         token = task.parser.token
-        parser = parsing_dispatcher.get_parser(task.parser.platform)
+        #parser = parsing_dispatcher.get_parser(task.parser.platform)
         post_num = PARSE_VK_POST_NUM
-        if task.post_num != INFINITE:
+        if task.post_num != infinite_def:
             if (task.post_num<PARSE_VK_POST_NUM) and (task.post_num>0):
                 post_num = task.post_num
         params = ParseParams(target_id=task.target_id, target_type=task.target_type, token=token, post_count=post_num,
-                             filter=task.filter,
-                             use_free_proxy=False)
+                             filter=task.filter, use_free_proxy=False)
         period = task.period
         while True:
             # Определяем счетчики
@@ -198,33 +202,16 @@ async def parsing(task: ParseTask, show_progress = True, quick_start=False):
             if parsing_mode != ParsingMode.UPDATE_PERIOD:
                 print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
                 # Сохраняем состояние
-                await refresh_task_state(task, ParseTaskStates.Ended.value)
+                await task.refresh_task_state(ParseTaskStates.Ended.value)
                 break
             # Обновляем данные задачи
             task = ParseTask.get_by_id(task.get_id())
             # Сохраняем состояние
-            await refresh_task_state(task, ParseTaskStates.Sleep.value)
+            await task.refresh_task_state(ParseTaskStates.Sleep.value)
             await asyncio.sleep(period)
     except Exception as ex:
-        await refresh_task_state(task, ParseTaskStates.Error.value, ex)
+        await task.refresh_task_state(ParseTaskStates.Error.value, ex)
         err_str = f'При выполнении задачи {task.name} (key: {task.get_id()}), got_post_num: {got_post_num}, posts_got: {posts_got},  произошла ошибка: {ex}. Задача остановлена.'
         parsers_loger.error(err_str)
 
 
-async def init_tasks():
-    # Получаем список задач из базы
-    tasks = get_elements(ParseTask)
-    task_num = 0
-    for task in tasks:
-        # Настраиваем
-        try:
-            if task.active == ParseTaskActive.InWork.value:
-                parsing_dispatcher.tasks.append(asyncio.create_task(parsing(task), name=task.name))
-                task_num += 1
-        except Exception as ex:
-            #print(f'При запуске задачи {task.name} (key: {task.get_id()}) возникла ошибка: {ex}')
-            parsers_loger.error(f'При запуске задачи {task.name} (key: {task.get_id()}) возникла ошибка: {ex}')
-            continue
-    app_loger.info(f'Запущено {task_num} задач.')
-    #print(f'Запущено {task_num} задач.')
-    return 0

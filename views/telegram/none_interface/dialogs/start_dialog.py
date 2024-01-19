@@ -7,7 +7,6 @@ from aiogram_dialog.widgets.kbd import SwitchTo, Start, Next
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram.fsm.state import State, StatesGroup
 # routers
-from routers.parsing.dispatcher import parsing_dispatcher
 from routers.logers import bots_loger
 # views
 # from views.telegram.tmp.lexicon import *

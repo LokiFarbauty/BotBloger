@@ -27,7 +27,8 @@ from models.data.channel import Channel, ChannelTypes
 
 # routers
 from routers.console.terminal_interface import Command
-from routers.parsing.dispatcher import parsing_dispatcher, INFINITE
+from routers.parsing.parsers_dispatсher import parsers_dispatcher
+from routers.parsing.parsing import INFINITE
 from routers.logers import app_loger
 from routers.bots.telegram import bots
 import routers.bots.telegram.bots as bots_unit
@@ -232,7 +233,7 @@ async def create_admin():
     try:
         parser = parsers[0]
     except Exception as ex:
-        parser_obj = parsing_dispatcher.get_parser('ВКонтакте')
+        parser_obj = parsers_dispatcher.get_parser('ВКонтакте')
         parser = Parser.create(name='service_parser', platform=parser_obj.name, user=user, img='', file=parser_obj.file,
                                 description=parser_obj.description, token=adm_vk_token, public=0)
         parser.save()
@@ -388,7 +389,7 @@ async def create_task(name: str, target_name: str, program_key: int=0,  filter='
         program = None
     # Проверяем есть ли такой ресурс в ВК
     s_parse_mld = Parser.get_service_parser()
-    parser = parsing_dispatcher.get_parser('ВКонтакте')
+    parser = parsers_dispatcher.get_parser('ВКонтакте')
     if parser != None and s_parse_mld != None:
         try:
             target_id, target_type = await parser.get_vk_object_id(target_name, s_parse_mld.token, with_type=True)

@@ -27,7 +27,7 @@ from models.data_model import get_elements
 
 # views
 #from views.telegram.tmp.dialogs_dispatcher import bot_dialogs
-#from views.telegram.interface_dispather import bot_interfaces
+from views.telegram.interface_dispather import get_bot_interface
 from views.telegram.none_interface.dialogs_dispatcher import BotView
 
 # удалить
@@ -47,13 +47,13 @@ class BotExt(Bot):
         self.name = ''
         self.url = ''
         self.tg_id = 0
-        self.active = active
-        self.public = public
-        self.storage: MemoryStorage = MemoryStorage()
-        self.status = BotStatus.NoError
-        self.polling_process = None
+        self.active = active  # флаг автозапуска
+        self.public = public # 0 - бот частный, 1 - публичный
+        self.storage: MemoryStorage = MemoryStorage() # Это нужно для диалогов
+        self.status = BotStatus.NoError # текущий статус бота
+        self.polling_process = None # процесс пулинга
         try:
-            self.bot = super().__init__(token=token, parse_mode=parse_mode)
+            self.bot = super().__init__(token=token, parse_mode=parse_mode) # готовим базовый бот
             #self.bot = super(BotExt, self).__init__(token=token, parse_mode=parse_mode)
             #self.bot = Bot(token=token, parse_mode=parse_mode)
         except Exception as ex:
@@ -123,7 +123,10 @@ class BotExt(Bot):
                     bots_loger(f'Не удалось обновить информацию о боте: {bot_obj.get_id()}. Ошибка: {ex}')
                 # Переадресовываем пользователя на точку входа интерфейса
                 #await dialog_manager.start(SG_bot_config.show_menu, mode=StartMode.RESET_STACK, data={'user': user})
-                await dialog_manager.start(Dialog_state.start, mode=StartMode.RESET_STACK, data={'user': user})
+                # получаем интерфейс бота
+                bot_interface = get_bot_interface(bot_obj.interface)
+                if bot_interface != None:
+                    await dialog_manager.start(bot_interface.start_state, mode=StartMode.RESET_STACK, data={'user': user})
             except Exception as ex:
                 try:
                     bots_loger.error(f"Ошибка CommandStart() в боте {bot_obj.get_id()}: {ex}")
@@ -185,7 +188,7 @@ class BotExt(Bot):
         # await dialog_manager.start(states.SG_start_menu.start, mode=StartMode.RESET_STACK)
 
     async def start_polling(self):
-        # Запускаем прослушивание бота
+        # Запускаем прослушивание бота (так бота лучше не запускать используй start_polling_task)
         try:
             self.status = BotStatus.InWork
             await self.dispatcher.start_polling(self)
@@ -195,7 +198,7 @@ class BotExt(Bot):
             bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
 
     async def start_polling_task(self):
-        # Запускаем прослушивание бота
+        # Запускаем прослушивание бота в качестве отдельной задачи
         try:
             self.status = BotStatus.InWork
             self.polling_process = asyncio.create_task(self.start_polling(), name=self.name)
@@ -217,6 +220,7 @@ class BotExt(Bot):
         return self.status.value
 
 async def get_BotExt(bot_mld: BotModel)-> BotExt:
+    # Возвращает объект бота по его модели
     bot_pr = None
     for bot in current_bots:
         if bot.name == bot_mld.name:
@@ -226,6 +230,8 @@ async def get_BotExt(bot_mld: BotModel)-> BotExt:
 
 async def init_bots():
     # Получаем список ботов из базы
+    print(f'Загрузка ботов...')
+    app_loger.info(f'Загрузка ботов...')
     mbots = get_elements(BotModel)
     bots = []
     bots_names = []
@@ -244,6 +250,8 @@ async def init_bots():
                 bot.name = bot_info.first_name
                 bot.url = bot_info.username
                 bot.tg_id = bot_info.id
+                #print(f'Бот {bot.name} загружен.')
+                app_loger.info(f'Бот <{bot.name}> загружен.')
             except Exception as ex:
                 app_loger.warning(f'Установить связь с ботом {mbot.name} не удалось. Ошибка: {ex}')
                 continue
@@ -258,6 +266,32 @@ async def init_bots():
             print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
             app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
             continue
-    app_loger.info(f'Запущено {len(bots)} ботов.')
+    app_loger.info(f'Загружено {len(bots)} ботов.')
     #print(f'Запущено {len(bots)} ботов.')
     return bots
+
+async def start_bots():
+    # Запускаем боты
+    cr_bots = await init_bots()
+    print(f'Запуск ботов...')
+    app_loger.info(f'Запуск ботов...')
+    current_bots = cr_bots
+    bot_num = 0
+    for i, bot in enumerate(current_bots, 0):
+        #tasks.append(start_polling(bot))
+        if bot.active == 1:
+            #tasks.append(bot.start_polling())
+            try:
+                current_bots[i].polling_process = asyncio.create_task(bot.start_polling(), name=bot.name)
+                print(f'Бот <{current_bots[i].name}> запущен.')
+                app_loger.info(f'Бот <{current_bots[i].name}> запущен.')
+                current_bots[i].status = BotStatus.InWork
+                bot_num +=1
+            except Exception as ex:
+                current_bots[i].status = BotStatus.Broken
+                #print(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
+                app_loger.warning(f'Запустить бота {bot.name} не удалось. Ошибка: {ex}')
+        else:
+            current_bots[i].status = BotStatus.Stopped
+    print(f'Запущено {bot_num} ботов.')
+    app_loger.info(f'Запущено {bot_num} ботов.')

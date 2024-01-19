@@ -1,7 +1,7 @@
 import aiohttp
 # routers
 from routers.console.terminal_interface import Command
-from routers.parsing.dispatcher import parsing_dispatcher
+from routers.parsing.parsers_dispatсher import parsers_dispatcher
 from routers.parsing.interface_parser import ParseParams
 from routers.parsing.analyzer import analyze_posts, AnalyzerParams
 #
@@ -11,7 +11,7 @@ from models.data.post import Post
 from models.data.publicator import Publicator
 #
 from routers.logers import app_loger
-from routers.parsing.dispatcher import parsing_dispatcher, parsing
+from routers.parsing.parsing import parsing
 from routers.publicate.telegraph_tools import put_post_to_telegraph
 from routers.publicate.publicators import (public_post_to_channel, get_publicator_process_state,
                                            stop_publicator_process, start_publicator_process)
@@ -30,7 +30,7 @@ async def vk_parse(target_id=0, token='test'):
     if token == 'test':
         token = token_new
     params = ParseParams(target_id=target_id, token=token, post_count=10, use_free_proxy=False)
-    parser = parsing_dispatcher.get_parser('ВКонтакте')
+    parser = parsers_dispatcher.get_parser('ВКонтакте')
     if parser != None:
         conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
         async with aiohttp.ClientSession(connector=conn) as new_session:
@@ -62,7 +62,7 @@ async def get_vk_post_count(target_id=0, token='test'):
     if token == 'test':
         token = 'vk1.a.fZyiWIVGGg_7sM0euOzteiauES3ZM2DP73QXvWnMaAR2lc7-ww2bms3zWifrqKDTTeUAkW06-sEAiHJLxZwKcTlZaQD-q_EQZatNZOK_XTXp7Y3FVMqi6THV29qM96AIDfNmEMR3Fkg1rNTnObyCqbn9wQmsbWsCBSmYHflU9cOyy-Dc4i1g1QdiWQxmKiPrTu7hicXNU-3TrVvzrLIXSA'
     params = ParseParams(target_id=target_id, token=token, post_count=1, use_free_proxy=False)
-    parser = parsing_dispatcher.get_parser('ВКонтакте')
+    parser = parsers_dispatcher.get_parser('ВКонтакте')
     if parser != None:
         res=await parser.get_entries_count(params)
     else:
@@ -76,7 +76,7 @@ commands.append(
 async def get_vk_id(target_name, token='test'):
     if token == 'test':
         token = 'vk1.a.fZyiWIVGGg_7sM0euOzteiauES3ZM2DP73QXvWnMaAR2lc7-ww2bms3zWifrqKDTTeUAkW06-sEAiHJLxZwKcTlZaQD-q_EQZatNZOK_XTXp7Y3FVMqi6THV29qM96AIDfNmEMR3Fkg1rNTnObyCqbn9wQmsbWsCBSmYHflU9cOyy-Dc4i1g1QdiWQxmKiPrTu7hicXNU-3TrVvzrLIXSA'
-    parser = parsing_dispatcher.get_parser('ВКонтакте')
+    parser = parsers_dispatcher.get_parser('ВКонтакте')
     if parser != None:
         id, type = await parser.get_vk_object_id(target_name, token, with_type=True)
     else:
@@ -90,7 +90,7 @@ commands.append(
 async def get_vk_group_info(target_id, token='test'):
     if token == 'test':
         token = 'vk1.a.fZyiWIVGGg_7sM0euOzteiauES3ZM2DP73QXvWnMaAR2lc7-ww2bms3zWifrqKDTTeUAkW06-sEAiHJLxZwKcTlZaQD-q_EQZatNZOK_XTXp7Y3FVMqi6THV29qM96AIDfNmEMR3Fkg1rNTnObyCqbn9wQmsbWsCBSmYHflU9cOyy-Dc4i1g1QdiWQxmKiPrTu7hicXNU-3TrVvzrLIXSA'
-    parser = parsing_dispatcher.get_parser('ВКонтакте')
+    parser = parsers_dispatcher.get_parser('ВКонтакте')
     if parser != None:
         res = await parser.get_vk_group_info(target_id, token)
     else:
@@ -104,7 +104,7 @@ commands.append(
 async def get_vk_user_group(target_id, filter='', token='test'):
     if token == 'test':
         token = 'vk1.a.91iecxcqhaZpqlRZ5aSZPvTJa9LmJbYPNCUkefQgipRIBZBmNoFVFOCNndqcrfchsa1a0Cj0mo0pQVMyW5Gt-nEoxnvvgBaVnbh3Z7du_enxoTlC0zPKmvpw0D1tOHzA9oTwwp3KG0jElf5VV6DL78NEmCafwO-ZzwuXEg3C4TAd8PM3A1dPZ2uNFfnHkOk-synIYGhT52OhG-exMjjXxQ'
-    parser = parsing_dispatcher.get_parser('ВКонтакте')
+    parser = parsers_dispatcher.get_parser('ВКонтакте')
     if parser != None:
         res = await parser.get_vk_user_group(target_id, token, filter)
     else:
@@ -116,7 +116,7 @@ commands.append(
 )
 
 async def get_task_process_status(taskname: str):
-    res = parsing_dispatcher.get_task_status(taskname)
+    res = parsers_dispatcher.get_task_status(taskname)
     return res.value
 
 commands.append(
@@ -124,7 +124,7 @@ commands.append(
 )
 
 async def stop_task_process(taskname: str):
-    res = parsing_dispatcher.stop_task(taskname)
+    res = parsers_dispatcher.stop_task(taskname)
     return res
 
 commands.append(
@@ -132,7 +132,7 @@ commands.append(
 )
 
 async def start_task_process(taskname: str):
-    res = await parsing_dispatcher.start_task(taskname, parsing)
+    res = await parsers_dispatcher.start_task(taskname, parsing)
     return res
 
 commands.append(

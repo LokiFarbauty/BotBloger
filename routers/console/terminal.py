@@ -22,8 +22,9 @@ async def console(args):
     first = True
     while True:
         try:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
             if first:
+                await asyncio.sleep(5)
                 print('Терминал активен, можно вводить команды:')
                 try:
                     # Создаем коммандный интерфейс
@@ -86,31 +87,5 @@ async def console(args):
                         print(ex)
                 else:
                     print('Неизвестная команда')
-            # elif command=='create_test_bot':
-            #     try:
-            #         user = scripts.get_test_user()
-            #         scripts.create_test_bot(user)
-            #         print('Тестовый бот успешно создан')
-            #     except Exception as ex:
-            #         print(ex)
-            # elif command=='vk_get_group_info':
-            #     # Команда возвращает информацию о группе по id
-            #     if len(args) > 0:
-            #         res=parser_obj.get_vk_group_info(args[0])
-            #         print(res)
-            #     else:
-            #         print(f'Ошибка: {err_no_parametrs}')
-            #     pass
-            # elif command=='vk_get_user_info':
-            #     # Команда возвращает информацию о пользователе по id
-            #     if len(args) > 0:
-            #         res=parser_obj.get_vk_user_info(args[0])
-            #         print(res)
-            #     else:
-            #         print(f'Ошибка: {err_no_parametrs}')
-            #     pass
-            # else:
-            #
-            #     print('Неправильная команда')
         except (KeyboardInterrupt, SystemExit):
             break

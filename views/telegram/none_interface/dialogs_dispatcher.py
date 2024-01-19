@@ -20,6 +20,7 @@ py_dlg_path = 'views.telegram.none_interface.dialogs'
 
 
 def get_dialogs(path=dlg_path, py_path=py_dlg_path):
+    # Подгружаем все найденые диалоги
     dialogs_lst = []
     # проверяем директорию
     if not os.path.isdir(path):
@@ -55,11 +56,29 @@ def get_dialogs(path=dlg_path, py_path=py_dlg_path):
 
 
 class BotView(BotViewInterface):
+    name = 'None'
+    description = 'Базовый интерфейс бота'
     file = os.path.abspath(__file__)
     dialogs = get_dialogs()
-    #start_dialog: Dialog = dialogs[0]
-    #start_state_group: StatesGroup = Dialog_state
-    #start_state: State = start_state_group.start
+    start_dialog_name = 'Dialog_state'
+    start_state_name = f'{start_dialog_name}:start'
+    start_dialog = None
+    start_state = None
+    # Ищем стартовый диалог
+    try:
+        for dialog in dialogs:
+            if dialog.name == start_dialog_name:
+                start_dialog = dialog
+                break
+        # Указываем стартовое состояние
+        keys = start_dialog.windows.keys()
+        for i in keys:
+                if start_dialog.windows[i].state == start_state_name:
+                    start_state = start_dialog.windows[i]
+                    break
+    except Exception as ex:
+        start_dialog: StatesGroup = None
+        start_state = None
     pass
 
 

@@ -19,6 +19,7 @@ except:
 
 MAX_POLL_ANWSER_LEN = 100 # Максимальная длинна строки ответа. Ограничения телеграмм 100
 
+
 def setup_logger(logger_name, log_file, level=logging.INFO, mode = 'w'):
     """To setup as many loggers as you want"""
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%d.%m.%Y %H:%M:%S')

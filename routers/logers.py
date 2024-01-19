@@ -2,11 +2,21 @@
 ботов, консоли, парсинга, публикации'''
 
 import logging
+import os
+from main_config import MAIN_PATH
+
+LOGS_PATH = MAIN_PATH +'\\logs\\' # путь к логам
+
+if not os.path.isdir(LOGS_PATH):
+    try:
+        os.mkdir(LOGS_PATH)
+    except Exception as ex:
+        print(f'Создать папку для логов "logs" не удалось. Причина: {ex}')
 
 def setup_logger(logger_name, log_file, level=logging.INFO, mode = 'w'):
     """To setup as many loggers as you want"""
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
-    handler = logging.FileHandler(log_file, mode)
+    handler = logging.FileHandler(f'{LOGS_PATH}\\{log_file}', mode)
     handler.setFormatter(formatter)
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
@@ -18,3 +28,4 @@ bots_loger = setup_logger('BotsLoger', 'bots.log') # логер ботов
 parsers_loger = setup_logger('ParsersLoger', 'parsers.log') # логер парсинга
 publicators_loger = setup_logger('PublicatorsLoger', 'publicators.log') # логер публикаторов
 telegram_loger = setup_logger('TelegramLoger', 'telegram.log') # логер ошибок телеграма, обычно проблемы со связью
+dialogs_loger = setup_logger('DlgLoger', 'dlgs_log.log') # логер диалогов представлений

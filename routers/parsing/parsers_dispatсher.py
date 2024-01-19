@@ -1,3 +1,7 @@
+'''Этот модуль содержит глобальные объекты - диспетчер парсеров.
+Он отвечает за автоматическую подгрузку парсеров из папки parsers.
+Парсеры подгружаются при создании объекта ParserDispatcher и дальше хранятся в нем'''
+
 import logging
 import importlib
 import os
@@ -6,11 +10,15 @@ import time
 from datetime import date
 import enum
 import asyncio
-
-from models.data.parse_task import ParseTask, ParseTaskStates
-
 #
-from routers.parsing.interface_parser import ParserInterface
+# models
+from models.data_model import get_elements
+from models.data.parse_task import ParseTask, ParseTaskStates, ParseTaskActive
+# routers
+from routers.logers import parsers_loger, app_loger
+from routers.parsing.interface_parser import ParserInterface, ParseParams
+from routers.parsing.parsing import parsing, INFINITE
+
 
 # Проверяем наличие файла конфигурации
 config_file = os.path.dirname(os.path.abspath(__file__)) + f'\\parsing_config.py'
@@ -94,7 +102,7 @@ class ParserDispatcher:
         self.logger.info(info_str)
         print(info_str)
 
-    def get_parser(self, name):
+    def get_parser(self, name) -> ParserInterface:
         for el in self.parsers:
             if el.name == name:
                 return el
@@ -145,6 +153,7 @@ class ParserDispatcher:
     async def start_task(self, taskname: str, func):
         # func - функция парсинга
         # Получаем задачу
+        _kwargs = {}
         try:
             task = ParseTask.get_task(name=taskname)
             if task == None:
@@ -153,8 +162,13 @@ class ParserDispatcher:
                 task.state = ParseTaskStates.InWork.value
                 task.save()
             task_process = self.get_task_process(taskname)
+            _kwargs['task'] = task
+            _kwargs['infinite_def'] = INFINITE
+            _kwargs['parser'] = self.get_parser(task.parser.platform)
             if task_process == None:
-                self.tasks.append(asyncio.create_task(func(task, quick_start=True), name=taskname))
+                _kwargs['quick_start'] = True
+                #self.tasks.append(asyncio.create_task(func(task, quick_start=True), name=taskname))
+                self.tasks.append(asyncio.create_task(func(**_kwargs), name=taskname))
                 return f'Задача "{taskname}" запущена.'
             else:
                 task_status = self.get_task_status(taskname)
@@ -162,8 +176,41 @@ class ParserDispatcher:
                     return f'Задача "{taskname}" уже запущена.'
                 else:
                     self.tasks.remove(task_process)
-                    self.tasks.append(asyncio.create_task(func(task), name=taskname))
+                    _kwargs['quick_start'] = False
+                    #self.tasks.append(asyncio.create_task(func(task), name=taskname))
+                    self.tasks.append(asyncio.create_task(func(**_kwargs), name=taskname))
                     return f'Задача "{taskname}" запущена.'
         except Exception as ex:
             return f'Запуск задачи "{taskname}" не удался, причина: {ex}'
+
+    async def init_tasks(self):
+        # Получаем список задач из базы
+        print(f'Запуск задач...')
+        app_loger.info(f'Запуск задач...')
+        tasks = get_elements(ParseTask)
+        task_num = 0
+        _kwargs = {}
+        for task in tasks:
+            # Настраиваем
+            try:
+                if task.active == ParseTaskActive.InWork.value:
+                    _kwargs['task'] = task
+                    _kwargs['infinite_def'] = INFINITE
+                    _kwargs['parser'] = self.get_parser(task.parser.platform)
+                    _kwargs['quick_start'] = False
+                    self.tasks.append(asyncio.create_task(parsing(**_kwargs), name=task.name))
+                    app_loger.info(f'Запущена задача <{task.name}>.')
+                    print(f'Запущена задача <{task.name}>.')
+                    task_num += 1
+            except Exception as ex:
+                # print(f'При запуске задачи {task.name} (key: {task.get_id()}) возникла ошибка: {ex}')
+                parsers_loger.error(f'При запуске задачи {task.name} (key: {task.get_id()}) возникла ошибка: {ex}')
+                continue
+        print(f'Запущено {task_num} задач.')
+        app_loger.info(f'Запущено {task_num} задач.')
+        # print(f'Запущено {task_num} задач.')
+        return 0
+
+
+parsers_dispatcher = ParserDispatcher(parsers_loger)
 
