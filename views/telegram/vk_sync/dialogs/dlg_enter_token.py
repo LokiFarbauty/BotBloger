@@ -456,8 +456,7 @@ async def on_product_changed(callback: ChatEvent, select: Any, manager: DialogMa
     manager.dialog_data["group_index"] = int(item_id) - 1
     await manager.next()
 
-dialog_start_menu = Dialog(
-    Window(
+dialog_interface=(Window(
         Format('{greeting}'),
         Next(Const(BUTTONS['start_make_sync']), id="btn_start_make_sync"),
         getter=getter_make_vk_sync,
@@ -559,5 +558,6 @@ dialog_start_menu = Dialog(
         SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.get_vk_token),
         getter=getter_where_token,
         state=SG_enter_token_menu.where_token,
-    ),
-)
+    ))
+
+dialog_start_menu = Dialog(*dialog_interface)

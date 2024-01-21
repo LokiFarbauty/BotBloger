@@ -35,8 +35,7 @@ async def getter_contacts(**_kwargs):
         "greeting": 'Для связи с администратором напишите сюда @loki_admin_bot.',
     }
 
-dialog_start = Dialog(
-    Window(
+dialog_interface = (Window(
         Format('{greeting}'),
         #Back(Const(BUTTONS['назад']), id="btn_why_token_back"),
         #SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.start),
@@ -50,5 +49,6 @@ dialog_start = Dialog(
         #SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.start),
         getter=getter_contacts,
         state=Dialog_state.contacts,
-    ),
-)
+    ),)
+
+dialog_start = Dialog(*dialog_interface)

@@ -122,8 +122,7 @@ async def event_make_vk_sync(callback: CallbackQuery, button: Button,
     except Exception as ex:
         pass
 
-dialog_start_vk_sync = Dialog(
-    Window(
+dialog_interface = (Window(
         Format('{greeting}'),
         #SwitchTo(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=SG_enter_token_menu.start, when=F["is_not_registered"]),
         Start(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=SG_enter_token_menu.make_vk_sync, on_click=event_make_vk_sync, when=F["is_not_registered"]),
@@ -132,5 +131,7 @@ dialog_start_vk_sync = Dialog(
         Button(Const(lexicon.BUTTONS['cancel_sync']), id="btn_cancel_sync", on_click=event_cancel_sync, when=F["is_registered"]),
         getter=getter_start,
         state=SG_VKSync.start,
-    ),
-)
+        ),
+    )
+
+dialog_start_vk_sync = Dialog(*dialog_interface)
