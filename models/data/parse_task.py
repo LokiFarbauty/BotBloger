@@ -34,6 +34,7 @@ class ParseTask(Model):
     #posting_mode = IntegerField() # режим публикации class Posting_modes(enum.Enum):
     last_post_id = IntegerField() # id последнего спарсеного поста (для ВК)
     filter = CharField(null=True) # фильтр (для ВК)
+    delete_public_post = IntegerField(default=0)
     options = CharField(null=True) # произвольные опции
     cr_dt = DateTimeField() # дата создания задачи
     active = IntegerField()  # флаг автостарта (используется для автозапуска)
@@ -52,17 +53,20 @@ class ParseTask(Model):
     state = IntegerField()  # Результат последнего запуска задачи
     error = TextField(null=True)  # Последняя ошибка задачи
 
+
     class Meta:
         database = db  # this model uses the "people.db" database
 
     @classmethod
-    def get_task(cls, key=0, name=''):
+    def get_task(cls, key=0, name='', user=0):
         try:
             queryes = []
             if key != 0:
                 queryes.append(cls.id == key)
             if name != '':
                 queryes.append(cls.name == name)
+            if user != '':
+                queryes.append(cls.user == user)
             task = cls.get(*queryes)
             return task
         except Exception as ex:

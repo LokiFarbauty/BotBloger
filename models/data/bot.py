@@ -10,18 +10,25 @@ class BotStates(enum.Enum):
     InWork = 1  # задача в работе
     Error = 2 # завершено с ошибкой
 
+class BotDestination(enum.Enum):
+    Not_set = 0  # не задано
+    VKSync = 1  # бот используется для синхронизации ВК и ТГ
+
+
 class Bot(Model):
     user = ForeignKeyField(User, backref='bots', index=True)
-    token = TextField()
+    token = TextField(index=True)
     parse_mode = CharField(default='HTML')
     name = TextField()
     url = TextField()
-    tg_id = IntegerField()
+    tg_id = IntegerField(index=True)
     active = BooleanField(default=0) # Переменная автозапуска для бота
     state = IntegerField(default=0) # состояние бота
     public = BooleanField(default=False)  # доступен ли бот для всех, ели нет то доступ будет только у пользователя
-    db_file = TextField()
+    db_file = TextField(null=True) # пока не используется
     interface = CharField(default='None') # Интерефейс бота
+    destination = IntegerField(default=0) # назначение бота, для чего он будет использоваться
+    options = TextField(default='{}') # Различная информация в видде словаря, можно хранить что угодно
     class Meta:
         database = db
 
@@ -50,7 +57,7 @@ class Bot(Model):
             return None
 
     @classmethod
-    def get_bot(cls, key=0, name='', url='', tg_id=0):
+    def get_bot(cls, key=0, name='', url='', tg_id=0, user=0, token=''):
         try:
             queryes = []
             if key != 0:
@@ -61,6 +68,10 @@ class Bot(Model):
                 queryes.append(cls.url == url)
             if tg_id != 0:
                 queryes.append(cls.tg_id == tg_id)
+            if user != 0:
+                queryes.append(cls.user == user)
+            if token != '':
+                queryes.append(cls.token == token)
             bot = cls.get(*queryes)
             return bot
         except Exception as ex:

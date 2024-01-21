@@ -12,11 +12,13 @@ class User_Bot(Model):
         database = db  # this model uses the "people.db" database
 
     @classmethod
-    def get_obj(cls, user: User, bot: Bot):
+    def get_obj(cls, user: User = None, bot: Bot = None):
         try:
             queryes = []
-            queryes.append(cls.user == user)
-            queryes.append(cls.bot == bot)
+            if user != None:
+                queryes.append(cls.user == user)
+            if bot != None:
+                queryes.append(cls.bot == bot)
             el = cls.get(*queryes)
             return el
         except Exception as ex:

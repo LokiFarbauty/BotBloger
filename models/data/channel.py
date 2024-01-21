@@ -9,6 +9,7 @@ class ChannelTypes(enum.Enum):
     Dump = 1
     Error = 2
     Info = 3
+    VkSync = 4
 
 class Channel(Model):
     channel_tg_id = IntegerField()

@@ -107,7 +107,7 @@ class Parser(ParserInterface):
                     f'{params.proxy_protocol}': params.proxy_url,
                 }
                 proxy_str = f'{params.proxy_protocol}: params.proxy_url'
-            url = f"https://api.vk.com/method/wall.get?owner_id={target_id}&offset={params.offset}&count={params.post_count}&filter={params.filter}&access_token={params.token}&v=5.131"
+            url = f"https://api.vk.com/method/wall.get?owner_id={target_id}&offset={params.offset}&count={params.post_count}&filter={params.filter}&access_token={params.token}&v=5.199"
             ua = UserAgent()
             header = {'User-Agent': str(ua.random)}
             if session == None:
@@ -357,7 +357,7 @@ class Parser(ParserInterface):
                                                 video['url'] = video_url
                                                 post_src.videos.append(video)
                                                 continue
-                                            video_get_url = f"https://api.vk.com/method/video.get?videos={video_owner_id}_{video_post_id}_{video_access_key}&extended=1&access_token={params.token}&v=5.131"
+                                            video_get_url = f"https://api.vk.com/method/video.get?videos={video_owner_id}_{video_post_id}_{video_access_key}&extended=1&access_token={params.token}&v=5.199"
                                             #v_req = requests.get(video_get_url)
                                             conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
                                             async with aiohttp.ClientSession(connector=conn) as new_session:
@@ -367,7 +367,7 @@ class Parser(ParserInterface):
                                                 video_url = v_res["response"]["items"][0]["player"]
                                             except:
                                                 # Пытаемся на всякий случай с резервным токеном
-                                                video_get_url = f"https://api.vk.com/method/video.get?videos={video_owner_id}_{video_post_id}_{video_access_key}&access_token={params.token}&v=5.131"
+                                                video_get_url = f"https://api.vk.com/method/video.get?videos={video_owner_id}_{video_post_id}_{video_access_key}&access_token={params.token}&v=5.199"
                                                 #v_req = requests.get(video_get_url)
                                                 conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
                                                 async with aiohttp.ClientSession(connector=conn) as new_session:
@@ -502,13 +502,38 @@ class Parser(ParserInterface):
     #             f'Парсер VKParser (target_id={params.target_id}, filter={filter}) ошибка парсинга: {ex}')
     #         return None
 
+
+
+    @classmethod
+    async def check_token(cls, access_token: str):
+        # Проверка токена
+        res = True
+        try:
+            url = f"https://api.vk.com/method/utils.getServerTime?access_token={access_token}&v=5.199"
+            ua = UserAgent()
+            header = {'User-Agent': str(ua.random)}
+            conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
+            async with aiohttp.ClientSession(connector=conn) as new_session:
+                page = await new_session.get(url, headers=header, ssl=False)
+                res = await page.json()
+            try:
+                error = res['error']
+                return False
+            except:
+                return True
+        except:
+            return False
+        return res
+
+
+
     @classmethod
     async def get_vk_object_id(cls, vk_object_name: str, token: str, with_type = False):
         urls = []
         urls.append(
-            f"https://api.vk.com/method/utils.resolveScreenName?screen_name={vk_object_name}&access_token={token}&v=5.131")
+            f"https://api.vk.com/method/utils.resolveScreenName?screen_name={vk_object_name}&access_token={token}&v=5.199")
         urls.append(
-            f"https://api.vk.com/method/utils.resolveScreenName?screen_name={vk_object_name}&access_token={token}&v=5.131")
+            f"https://api.vk.com/method/utils.resolveScreenName?screen_name={vk_object_name}&access_token={token}&v=5.199")
         ua = UserAgent()
         header = {'User-Agent': str(ua.random)}
         for url in urls:
@@ -540,9 +565,9 @@ class Parser(ParserInterface):
     async def get_vk_group_info(cls, vk_group_id, token):
         urls = []
         urls.append(
-            f"https://api.vk.com/method/groups.getById?group_id={vk_group_id}&fields=description,members_count&access_token={token}&v=5.131")
+            f"https://api.vk.com/method/groups.getById?group_id={vk_group_id}&fields=description,members_count&access_token={token}&v=5.199")
         urls.append(
-            f"https://api.vk.com/method/groups.getById?group_id={vk_group_id}&fields=description,members_count&access_token={token}&v=5.131")
+            f"https://api.vk.com/method/groups.getById?group_id={vk_group_id}&fields=description,members_count&access_token={token}&v=5.199")
         ua = UserAgent()
         header = {'User-Agent': str(ua.random)}
         for url in urls:
@@ -554,9 +579,9 @@ class Parser(ParserInterface):
                 gr_info = await req_gr_info.json()
             try:
                 res={}
-                res['name'] = gr_info['response'][0]['name']
-                res['description'] = gr_info['response'][0]['description']
-                res['members_count'] = gr_info['response'][0]['members_count']
+                res['name'] = gr_info['response']['groups'][0]['name']
+                res['description'] = gr_info['response']['groups'][0]['description']
+                res['members_count'] = gr_info['response']['groups'][0]['members_count']
                 return res
             except:
                 continue
@@ -566,9 +591,9 @@ class Parser(ParserInterface):
     async def get_vk_user_info(cls, vk_user_id, token):
         urls = []
         urls.append(
-            f"https://api.vk.com/method/users.get?user_ids={vk_user_id}&access_token={token}&v=5.131")
+            f"https://api.vk.com/method/users.get?user_ids={vk_user_id}&access_token={token}&v=5.199")
         urls.append(
-            f"https://api.vk.com/method/users.get?user_ids={vk_user_id}&access_token={token}&v=5.131")
+            f"https://api.vk.com/method/users.get?user_ids={vk_user_id}&access_token={token}&v=5.199")
         ua = UserAgent()
         header = {'User-Agent': str(ua.random)}
         for url in urls:

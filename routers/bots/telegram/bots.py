@@ -12,6 +12,7 @@ from aiogram.filters import ExceptionTypeFilter, CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
+from aiogram.exceptions import TelegramBadRequest
 import enum
 
 # routers
@@ -28,10 +29,11 @@ from models.data_model import get_elements
 # views
 #from views.telegram.tmp.dialogs_dispatcher import bot_dialogs
 from views.telegram.interface_dispather import get_bot_interface
-from views.telegram.none_interface.dialogs_dispatcher import BotView
+#from views.telegram.none_interface.dialogs_dispatcher import BotView
 
 # удалить
-from views.telegram.none_interface.dialogs.start_dialog import Dialog_state
+
+
 
 current_bots = []
 
@@ -52,6 +54,8 @@ class BotExt(Bot):
         self.storage: MemoryStorage = MemoryStorage() # Это нужно для диалогов
         self.status = BotStatus.NoError # текущий статус бота
         self.polling_process = None # процесс пулинга
+        tt_pos = token.find(':')
+        self.router_name = token[:tt_pos]
         try:
             self.bot = super().__init__(token=token, parse_mode=parse_mode) # готовим базовый бот
             #self.bot = super(BotExt, self).__init__(token=token, parse_mode=parse_mode)
@@ -62,13 +66,13 @@ class BotExt(Bot):
             return
         dp: Dispatcher = Dispatcher(storage=self.storage)
         # Создаем роутер для диалогов
-        self.dialog_router = Router()
+        self.dialog_router = Router(name=self.router_name)
         # Регистрируем все диалоги
         if len(routers) > 0:
             self.dialog_router.include_routers(*routers)
-        dp.errors.register(self.on_unknown_intent, ExceptionTypeFilter(UnknownIntent), )
-        dp.errors.register(self.on_unknown_state, ExceptionTypeFilter(UnknownState), )
-        dp.errors.register(self.on_outdated_intent, ExceptionTypeFilter(OutdatedIntent), )
+        dp.errors.register(on_unknown_intent, ExceptionTypeFilter(UnknownIntent), )
+        dp.errors.register(on_unknown_state, ExceptionTypeFilter(UnknownState), )
+        dp.errors.register(on_outdated_intent, ExceptionTypeFilter(OutdatedIntent), )
         # dp.errors.register(on_telegram_error)
         # , ExceptionTypeFilter(TelegramServerError),
         #                            ExceptionTypeFilter(TelegramRetryAfter),
@@ -165,29 +169,6 @@ class BotExt(Bot):
             except Exception as ex:
                 bots_loger.error(f"F.text: {ex}")
 
-    async def on_unknown_intent(self, event, dialog_manager: DialogManager):
-        """Example of handling UnknownIntent Error and starting new dialog."""
-        # logger.error(f'Сработало исключение: неизвестный замысел: {event.exception}!')
-        # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
-        pass
-
-    async def on_unknown_state(event, dialog_manager: DialogManager):
-        """Example of handling UnknownState Error and starting new dialog."""
-        # logging.error("Restarting dialog: %s", event.exception)
-        # logger.error(f'Сработало исключение: неизвестное состояние: {event.exception}!')
-        # print('Error: on_unknown_state')
-        # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
-        pass
-
-    async def on_outdated_intent(event, dialog_manager: DialogManager):
-        """Example of handling UnknownState Error and starting new dialog."""
-        try:
-            # await dialog_manager.done()
-            await dialog_manager.reset_stack()
-            # logger.error(f'Сработало исключение: on_outdated_intent: {event.exception}!')
-        except:
-            pass
-        # await dialog_manager.start(states.SG_start_menu.start, mode=StartMode.RESET_STACK)
 
     async def start_polling(self):
         # Запускаем прослушивание бота (так бота лучше не запускать используй start_polling_task)
@@ -221,6 +202,52 @@ class BotExt(Bot):
             bots_loger.error(f'Ошибка в работе бота {self.name}: {ex}')
         return self.status.value
 
+async def on_unknown_intent(event, dialog_manager: DialogManager):
+    """Example of handling UnknownIntent Error and starting new dialog."""
+    # logger.error(f'Сработало исключение: неизвестный замысел: {event.exception}!')
+    # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
+    if event.update.callback_query:
+        try:
+            await event.update.callback_query.answer("Бот обновился. Пожалуйста перейдите в главное меню.")
+            try:
+                await event.update.callback_query.message.delete()
+            except TelegramBadRequest:
+                pass  # whatever
+        except:
+            pass
+    try:
+        user = dialog_manager.middleware_data['event_from_user']
+        bot = dialog_manager.middleware_data['bot']
+        await bot.send_message(user.id, 'Бот обновился. Пожалуйста нажмите /start')
+    except:
+        pass
+
+async def on_unknown_state(event, dialog_manager: DialogManager):
+    """Example of handling UnknownState Error and starting new dialog."""
+    # logging.error("Restarting dialog: %s", event.exception)
+    # logger.error(f'Сработало исключение: неизвестное состояние: {event.exception}!')
+    # print('Error: on_unknown_state')
+    # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
+    try:
+        user = dialog_manager.middleware_data['event_from_user']
+        bot = dialog_manager.middleware_data['bot']
+        await bot.send_message(user.id, 'Бот обновился. Пожалуйста нажмите /start')
+    except:
+        pass
+
+async def on_outdated_intent(event, dialog_manager: DialogManager):
+    """Example of handling UnknownState Error and starting new dialog."""
+    try:
+        # await dialog_manager.done()
+        user = dialog_manager.middleware_data['event_from_user']
+        bot = dialog_manager.middleware_data['bot']
+        await bot.send_message(user.id, 'Бот обновился. Пожалуйста нажмите /start')
+        await dialog_manager.reset_stack()
+        # logger.error(f'Сработало исключение: on_outdated_intent: {event.exception}!')
+    except:
+        pass
+    # await dialog_manager.start(states.SG_start_menu.start, mode=StartMode.RESET_STACK)
+
 async def get_BotExt(bot_mld: BotModel)-> BotExt:
     # Возвращает объект бота по его модели
     bot_pr = None
@@ -240,7 +267,11 @@ async def init_bots():
     for mbot in mbots:
         # Настраиваем бота
         try:
-            bot_dialogs = BotView.dialogs
+            # Получаем интерфейс
+            if mbot.interface == None:
+                mbot.interface = 'None'
+            bot_interface = get_bot_interface(mbot.interface)
+            bot_dialogs = bot_interface.dialogs
             bot = BotExt(mbot.token, mbot.parse_mode, mbot.active, mbot.public, 'None', *bot_dialogs)
             # проверяем работоспособность ботов
             try:

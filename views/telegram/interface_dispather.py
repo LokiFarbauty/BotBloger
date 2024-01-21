@@ -36,7 +36,11 @@ def load_bot_interfaces():
                                 name_file = filename[:pos]
                                 try:
                                     command_module = importlib.import_module(f'{py_path}.{dirname}.{name_file}')
-                                except:
+                                except Exception as ex:
+                                    err_str = str(ex)
+                                    if err_str.find('No module named') == -1:
+                                        print(f'Ошибка подключения интерфейса <{name_file}>. {err_str}')
+                                        app_loger.warning(f'Ошибка подключения интерфейса <{name_file}>. {err_str}')
                                     continue
                                 members = inspect.getmembers(command_module)
                                 for name, obj in members:
@@ -55,6 +59,7 @@ def load_bot_interfaces():
         return []
 
 bot_interfaces = load_bot_interfaces()
+pass
 
 def get_bot_interface(name: str):
     for el in bot_interfaces:

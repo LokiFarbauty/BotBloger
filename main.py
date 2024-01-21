@@ -37,7 +37,7 @@ async def main():
 async def task_void():
     # блокировка на некоторое время
     while True:
-        await asyncio.sleep(0.0001)
+        await asyncio.sleep(0.01)
 
 async def test_task():
     # блокировка на некоторое время
@@ -68,7 +68,7 @@ async def amain():
 
 if __name__ == '__main__':
     try:
-        logging.basicConfig(level=logging.CRITICAL)
+        logging.basicConfig(level=logging.INFO)
         asyncio.run(amain())
         print('Приложение завершено.')
         pass

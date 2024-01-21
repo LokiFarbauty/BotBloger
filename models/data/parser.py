@@ -22,7 +22,7 @@ class Parser(Model):
         database = db
 
     @classmethod
-    def get_parser(cls, user = 0, token = '', platform_user_id = 0, platform_user_name = ''):
+    def get_parser(cls, user = 0, token = '', platform_user_id = 0, platform_user_name = '', name = ''):
         try:
             queryes = []
             if user != 0:
@@ -33,6 +33,8 @@ class Parser(Model):
                 queryes.append(cls.token == token)
             if platform_user_name != '':
                 queryes.append(cls.platform_user_name == platform_user_name)
+            if name != '':
+                queryes.append(cls.name == name)
             el = cls.get(*queryes)
             return el
         except Exception as ex:
