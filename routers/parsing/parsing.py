@@ -99,11 +99,11 @@ async def parsing(**_kwargs):
             if (task_post_num == INFINITE) and ((task.period == 0) or (task.period == None)):
                 parsing_mode = ParsingMode.ARCHIVE
                 last_post_id = 0
-                source_post_count = await get_post_count_in_VK_source(task)
+                source_post_count = await get_post_count_in_VK_source(parser, task)
             elif (task_post_num == 0) and ((task.period == 0) or (task.period == None)):
                 parsing_mode = ParsingMode.UPDATE_SINGLE
                 last_post_id = task.last_post_id
-                source_post_count = await get_post_count_in_VK_source(task)
+                source_post_count = await get_post_count_in_VK_source(parser, task)
             elif (task_post_num > 0) and ((task.period == 0) or (task.period == None)):
                 parsing_mode = ParsingMode.COUNT
                 last_post_id = 0
@@ -111,7 +111,7 @@ async def parsing(**_kwargs):
             elif (task_post_num == 0) and (task.period > 0):
                 parsing_mode = ParsingMode.UPDATE_PERIOD
                 last_post_id = task.last_post_id
-                source_post_count = await get_post_count_in_VK_source(task)
+                source_post_count = await get_post_count_in_VK_source(parser, task)
             else:
                 parsing_mode = ParsingMode.UNKNOWN
                 last_post_id = 0

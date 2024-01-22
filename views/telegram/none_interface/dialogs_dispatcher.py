@@ -6,9 +6,21 @@ import os
 import importlib
 import inspect
 from aiogram.fsm.state import State, StatesGroup
+from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog import Dialog
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram import Bot, Dispatcher, F, Router
+from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState, OutdatedIntent
+from aiogram_dialog import setup_dialogs
+from aiogram.filters import ExceptionTypeFilter, CommandStart, Command
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import Message
+#
+from models.data.user_bot import User_Bot
+from models.data.bot import Bot as BotModel, BotStates
 #
 from routers.logers import bots_loger
+from routers.bots.bots_utills import get_tg_user_names
 #
 from views.telegram.interface_pattern import BotViewInterface
 # Диалоги
@@ -19,7 +31,42 @@ dlg_path = os.path.dirname(os.path.abspath(__file__))+'\\dialogs\\' # путь �
 py_dlg_path = 'views.telegram.none_interface.dialogs'
 
 
-def get_dialogs(path=dlg_path, py_path=py_dlg_path):
+# def get_dialogs(path=dlg_path, py_path=py_dlg_path):
+#     # Подгружаем все найденые диалоги
+#     dialogs_lst = []
+#     # проверяем директорию
+#     if not os.path.isdir(path):
+#         bots_loger.critical(
+#             f'Невозможно получить диалоги для ботов: отсутствует директория {path}')
+#         bots_loger.info(f'Создание диалогов прервано.')
+#         return dialogs_lst
+#     # Получаем список файлов в папке диалогов
+#     dialog_files = os.listdir(path)
+#     # Пробуем подключить парсеры
+#     cur_dlg_clases = []
+#     for dlg_file in dialog_files:
+#         try:
+#             pos = dlg_file.find('.py')
+#             if pos == -1:
+#                 continue
+#             else:
+#                 dlg_file = dlg_file[:pos]
+#             #
+#             command_module = importlib.import_module(f'{py_path}.{dlg_file}')
+#             vars_objs = vars(command_module).items()
+#             for name, values in vars_objs:
+#                 if type(values) is Dialog:
+#                     if values not in cur_dlg_clases:
+#                         cur_dlg_clases.append(values)
+#             # Добавляем диалоги
+#             for att_dlg in cur_dlg_clases:
+#                 if att_dlg not in dialogs_lst:
+#                     dialogs_lst.append(att_dlg)
+#         except Exception as ex:
+#             bots_loger.error(f'Ошибка загрузки диалога {dlg_file}: {ex}')
+#     return dialogs_lst
+
+def get_dialogs_interfaces(interface_name='dialog_interface',path=dlg_path, py_path=py_dlg_path):
     # Подгружаем все найденые диалоги
     dialogs_lst = []
     # проверяем директорию
@@ -31,7 +78,6 @@ def get_dialogs(path=dlg_path, py_path=py_dlg_path):
     # Получаем список файлов в папке диалогов
     dialog_files = os.listdir(path)
     # Пробуем подключить парсеры
-    cur_dlg_clases = []
     for dlg_file in dialog_files:
         try:
             pos = dlg_file.find('.py')
@@ -41,31 +87,149 @@ def get_dialogs(path=dlg_path, py_path=py_dlg_path):
                 dlg_file = dlg_file[:pos]
             #
             command_module = importlib.import_module(f'{py_path}.{dlg_file}')
-            vars_objs = vars(command_module).items()
-            for name, values in vars_objs:
-                if type(values) is Dialog:
-                    if values not in cur_dlg_clases:
-                        cur_dlg_clases.append(values)
-            # Добавляем диалоги
-            for att_dlg in cur_dlg_clases:
-                if att_dlg not in dialogs_lst:
-                    dialogs_lst.append(att_dlg)
+            members = inspect.getmembers(command_module)
+            for name, obj in members:
+                if name == interface_name:
+                    dialogs_lst.append(obj)
         except Exception as ex:
             bots_loger.error(f'Ошибка загрузки диалога {dlg_file}: {ex}')
     return dialogs_lst
 
-
 class BotView(BotViewInterface):
     name = 'None'
-    description = 'Базовый интерфейс бота'
-    file = os.path.abspath(__file__)
-    dialogs = get_dialogs()
-    start_dialog_name = 'Dialog_state'
-    start_state_name = f'{start_dialog_name}:start'
-    start_dialog = Dialog_state
-    #start_state = Dialog_state.start
-    pass
-    # Ищем стартовый диалог
+    def __init__(self):
+        self.description = 'Базовый интерфейс бота'
+        self.file = os.path.abspath(__file__)
+        self.dialogs_interfaces = get_dialogs_interfaces()
+        self.dialogs = []
+        for di in self.dialogs_interfaces:
+            dialog = Dialog(*di)
+            self.dialogs.append(dialog)
+        self.storage: MemoryStorage = MemoryStorage()  # Это нужно для диалогов
+        self.dp: Dispatcher = Dispatcher(storage=self.storage)
+        self.dialog_router = Router()
+        if len(self.dialogs) > 0:
+            self.dialog_router.include_routers(*self.dialogs)
+        self.dp.include_router(self.dialog_router)
+        self.dp.errors.register(self.on_unknown_intent, ExceptionTypeFilter(UnknownIntent), )
+        self.dp.errors.register(self.on_unknown_state, ExceptionTypeFilter(UnknownState), )
+        self.dp.errors.register(self.on_outdated_intent, ExceptionTypeFilter(OutdatedIntent), )
+        self.dp.message.register(self.proc_start_command, CommandStart())
+        self.dp.message.register(self.proc_back_command, Command('back'))
+        #self.dp.message.register(self.proc_other_mess, F.text)
+        pass
+
+    async def proc_start_command(self, message: Message, bot: Bot, dialog_manager: DialogManager):
+        try:
+            # Проверяем зарегистрирован ли пользователь
+            user_id = message.from_user.id
+            username, firstname, lastname = get_tg_user_names(message.from_user)
+            # Получаем бота из базы
+            bot_obj = BotModel.get_obj(bot.token)
+            if type(bot_obj) is not BotModel:
+                bots_loger.critical(f'Бот: {bot.token} в базе не найден.')
+                return
+            # Проверяем пользователя
+            user = User_Bot.check_user(bot_obj, user_id, username, firstname, lastname)
+            # print(await bot.get_my_name())
+            # Закрываем все ранее открытые диалоги
+            try:
+                # await dialog_manager.done()
+                await dialog_manager.reset_stack()
+            except:
+                pass
+            # Обновляем информацию о боте
+            try:
+                bot_info = await bot.get_me()
+                bot_obj = bot_obj.refresh_bot_info(name=bot_info.first_name, url=bot_info.username, tg_id=bot_info.id,
+                                                   state=BotStates.InWork.value)
+            except Exception as ex:
+                bots_loger(f'Не удалось обновить информацию о боте: {bot_obj.get_id()}. Ошибка: {ex}')
+            await dialog_manager.start(Dialog_state.start, mode=StartMode.RESET_STACK, data={'user': user})
+        except Exception as ex:
+            try:
+                bots_loger.error(f"Ошибка CommandStart() в боте {bot_obj.get_id()}: {ex}")
+            except:
+                pass
+
+    async def proc_back_command(self, message: Message, bot: Bot, dialog_manager: DialogManager):
+        # Проверяем зарегистрирован ли пользователь
+        try:
+            # # Проверяем зарегистрирован ли пользователь
+            # user_id = message.from_user.id
+            # username, firstname, lastname = get_tg_user_names(message.from_user)
+            # # Получаем бота из базы
+            # bot_obj = BotModel.get_obj(bot.token)
+            # if type(bot_obj) is not BotModel:
+            #     bots_loger.critical(f'Не удалось обновить информацию о боте: {bot.token}')
+            # # Проверяем наличие связи пользователя с ботом
+            # user = User_Bot.check_user(bot_obj, user_id, username, firstname, lastname)
+            await dialog_manager.back()
+        except Exception as ex:
+            bots_loger.error(f"Command('back'): {ex}")
+
+
+    async def proc_other_mess(self, message: Message, bot: Bot, dialog_manager: DialogManager):
+        try:
+            pass
+            # # Проверяем зарегистрирован ли пользователь
+            # user_id = message.from_user.id
+            # username, firstname, lastname = get_tg_user_names(message.from_user)
+            # user = User_Bot.check_user(bot.token, user_id, username, firstname, lastname)
+            # # Выводим диалог
+            # await dialog_manager.start(start_dialog.start, mode=StartMode.RESET_STACK, data={'user': user})
+        except Exception as ex:
+            bots_loger.error(f"F.text: {ex}")
+
+    async def on_unknown_intent(self, event, dialog_manager: DialogManager):
+        """Example of handling UnknownIntent Error and starting new dialog."""
+        # logger.error(f'Сработало исключение: неизвестный замысел: {event.exception}!')
+        # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
+        if event.update.callback_query:
+            try:
+                await event.update.callback_query.answer("Бот обновился. Пожалуйста перейдите в главное меню.")
+                try:
+                    await event.update.callback_query.message.delete()
+                except TelegramBadRequest:
+                    pass  # whatever
+            except:
+                pass
+        try:
+            user = dialog_manager.middleware_data['event_from_user']
+            bot = dialog_manager.middleware_data['bot']
+            await bot.send_message(user.id, 'Бот обновился. Пожалуйста нажмите /start')
+        except:
+            pass
+
+    async def on_unknown_state(self, event, dialog_manager: DialogManager):
+        """Example of handling UnknownState Error and starting new dialog."""
+        # logging.error("Restarting dialog: %s", event.exception)
+        # logger.error(f'Сработало исключение: неизвестное состояние: {event.exception}!')
+        # print('Error: on_unknown_state')
+        # await dialog_manager.start(DialogSG.greeting, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
+        try:
+            user = dialog_manager.middleware_data['event_from_user']
+            bot = dialog_manager.middleware_data['bot']
+            await bot.send_message(user.id, 'Бот обновился. Пожалуйста нажмите /start')
+        except:
+            pass
+
+    async def on_outdated_intent(self, event, dialog_manager: DialogManager):
+        """Example of handling UnknownState Error and starting new dialog."""
+        try:
+            # await dialog_manager.done()
+            user = dialog_manager.middleware_data['event_from_user']
+            bot = dialog_manager.middleware_data['bot']
+            await bot.send_message(user.id, 'Бот обновился. Пожалуйста нажмите /start')
+            await dialog_manager.reset_stack()
+            # logger.error(f'Сработало исключение: on_outdated_intent: {event.exception}!')
+        except:
+            pass
+        # await dialog_manager.start(states.SG_start_menu.start, mode=StartMode.RESET_STACK)
+
+
+
+
 
 
 

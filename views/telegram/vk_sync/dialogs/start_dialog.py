@@ -58,8 +58,11 @@ async def getter_start(**_kwargs):
         user_bot_mld = BotModel.get_bot(user=user_mld)
         channel = Channel.get_channel(user=user_mld)
         parse_task = ParseTask.get_task(user=user_mld)
-        greeting = f'С возвращением <b>{user_mld.firstname} {user_mld.lastname}</b>! У Вас уже имеется настроенная синхронизация телеграм-канала ' \
-                   f'<b>"{channel.name}"</b> и ВК-страницы <b>"{parse_task.target_name}"</b> через бот <b>"{user_bot_mld.name}"</b>.'
+        try:
+            greeting = f'С возвращением <b>{user_mld.firstname} {user_mld.lastname}</b>! У Вас уже имеется настроенная синхронизация телеграм-канала ' \
+                    f'<b>"{channel.name}"</b> и ВК-страницы <b>"{parse_task.target_name}"</b> через бот <b>"{user_bot_mld.name}"</b>.'
+        except Exception as ex:
+            greeting = ex
     return {
         "greeting": greeting,
         "is_registered": is_registered,
@@ -81,11 +84,17 @@ async def event_cancel_sync(callback: CallbackQuery, button: Button,
     #
     parse_task = ParseTask.get_task(user=user_mld)
     #
-    criterion = parse_task.criterion
+    try:
+        criterion = parse_task.criterion
+    except:
+        criterion = None
     #
     publicator = Publicator.get_publicator(channel=channel, user=user_mld)
     #
-    criterion_pub = publicator.criterion
+    try:
+        criterion_pub = publicator.criterion
+    except:
+        criterion_pub = None
     # Удаляем все
     try:
         if publicator != None:
@@ -96,6 +105,8 @@ async def event_cancel_sync(callback: CallbackQuery, button: Button,
             criterion_pub.delete_instance()
         if criterion != None:
             criterion.delete_instance()
+        # Удаляем пользователей бота
+        User_Bot.delete().where(User_Bot.bot == user_bot_mld).execute()
         if user_bot_mld != None:
             user_bot_mld.delete_instance()
         if parser != None:
