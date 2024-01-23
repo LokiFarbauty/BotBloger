@@ -5,13 +5,11 @@
 import os
 import importlib
 import inspect
-from aiogram.fsm.state import State, StatesGroup
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog import Dialog
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState, OutdatedIntent
-from aiogram_dialog import setup_dialogs
 from aiogram.filters import ExceptionTypeFilter, CommandStart, Command
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
@@ -24,7 +22,7 @@ from routers.bots.bots_utills import get_tg_user_names
 #
 from views.telegram.interface_pattern import BotViewInterface
 # Диалоги
-from views.telegram.vk_sync.dialogs.start_dialog import SG_VKSync
+#from views.telegram.vk_sync.dialogs.start_dialog import SG_VKSync
 
 #dlg_path = MAIN_PATH
 dlg_path = os.path.dirname(os.path.abspath(__file__))+'\\dialogs\\' # путь к файлам диалогов

@@ -150,12 +150,15 @@ class ParserDispatcher:
         except Exception as ex:
             return ex
 
-    async def start_task(self, taskname: str, func):
+    async def start_task(self, task_key = 0, taskname: str = '', func=None):
         # func - функция парсинга
         # Получаем задачу
         _kwargs = {}
         try:
-            task = ParseTask.get_task(name=taskname)
+            if task_key == 0:
+                task = ParseTask.get_task(name=taskname)
+            else:
+                task = ParseTask.get_by_id(task_key)
             if task == None:
                 return f'Задача "{taskname}" не найдена в базе.'
             else:

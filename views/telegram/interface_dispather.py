@@ -2,7 +2,6 @@ import os
 import importlib
 import inspect
 #
-from views.telegram.none_interface.dialogs_dispatcher import BotView
 from views.telegram.interface_pattern import BotViewInterface
 from routers.logers import app_loger
 #

@@ -40,6 +40,7 @@ class Publicator(Model):
     start_public_hour = IntegerField(default=9)  # время начала публикаций
     end_public_hour = IntegerField(default=20)  # время окончания публикаций
     range = IntegerField(null=True) # Для режима Marketing - диапазон лучших постов из которых выбирать случайный
+    delete_public_post = IntegerField(default=0) # Если 1 то после публикации пост удаляется из базы
     bot = ForeignKeyField(Bot, backref='publicators', index=True)
     telegraph_token = CharField()  # токен Телеграф
     author_caption = TextField(default="") # авторская подпись (выкладывается в конце поста)

@@ -3,7 +3,7 @@ from peewee import *
 from models.dm_config import db
 from models.data.parse_task import ParseTask
 from models.data.parse_program import ParseProgram
-#from models.data.post_hashtag import Post_Hashtag
+
 
 class Post(Model):
     post_id = IntegerField()
@@ -56,4 +56,6 @@ class Post(Model):
     def increase_post_views(self):
         self.views += 1
         self.save()
+
+
 

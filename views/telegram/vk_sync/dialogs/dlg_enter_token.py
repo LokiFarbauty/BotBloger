@@ -4,16 +4,21 @@ from typing import Any
 from operator import itemgetter
 from aiogram.types import ContentType, Message
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.fsm.state import State, StatesGroup
 from aiogram_dialog import (
     Dialog, DialogManager, Window, ChatEvent
 )
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import SwitchTo, Start, Next, ScrollingGroup, Button, Select, Url, Cancel
 from aiogram_dialog.widgets.text import Const, Format
-from views.telegram.vk_sync.lexicon import *
 from routers.parsing.parsers_dispatсher import parsers_dispatcher
 from routers.logers import bots_loger
+from routers.publicate.publicators import start_publicator_process
+from routers.parsing.parsing import parsing
+from routers.bots.telegram.bots import BotExt, current_bots
+#
+from views.telegram.interface_dispather import get_bot_interface
+from views.telegram.vk_sync.lexicon import *
+from views.telegram.vk_sync import states
 #
 from models.data.parser import Parser
 from models.data.user import User
@@ -24,21 +29,6 @@ from models.data.criterion import Criterion
 from models.data.bot import Bot as BotModel, BotDestination
 #
 from datetime import datetime
-
-class SG_enter_token_menu(StatesGroup):
-    make_vk_sync = State()
-    make_bot = State()
-    get_channel = State()
-    get_vk_token = State()
-    token_got = State()
-    create_assign_vk = State()
-    get_user_id = State()
-    make_vk_sync_final = State()
-    vk_sync_maked = State()
-    where_token = State()
-    why_token = State()
-    why_bot = State()
-
 
 
 
@@ -147,13 +137,13 @@ async def vk_token_handler(message: Message, message_input: MessageInput,
         t_pos = ac_url.find('user_id=')
         if t_pos == -1:
             #await message.answer(GREETINGS['нет токена'])
-            await dialog_manager.switch_to(state=SG_enter_token_menu.get_user_id)
+            await dialog_manager.switch_to(state=states.SG_enter_token_menu.get_user_id)
             return
         end_t_pos = ac_url.find('&', t_pos)
         vk_user_id = ac_url[t_pos + len('user_id='):end_t_pos]
         dialog_manager.dialog_data['vk_user_id'] = vk_user_id
         # Вызываем диалог завершения
-        await dialog_manager.switch_to(SG_enter_token_menu.create_assign_vk)
+        await dialog_manager.switch_to(states.SG_enter_token_menu.create_assign_vk)
         #parser = await get_parser(message.from_user.id, access_token, vk_user_id)
         #await message.answer(f'Парсер: {parser.name}')
     except Exception as ex:
@@ -412,7 +402,7 @@ async def getter_vk_sync_maked(**_kwargs):
                                     target_id=vk_group_id,
                                     target_name=group_name, target_type=group_type, filter=vk_filter,
                                     cr_dt=cr_dt, post_num='all', state=ParseTaskStates.Stopped.value,
-                                    last_post_id=0, delete_public_post=1,
+                                    last_post_id=0,
                                     active=ParseTaskActive.InWork.value, period=10*60)
         else:
             await bot.send_message(user_id,
@@ -425,8 +415,8 @@ async def getter_vk_sync_maked(**_kwargs):
             pub_criterion = Criterion.create(target_id=task.target_id,
                                          target_name=task.target_name, target_type=task.target_type)
             publicator = Publicator.create(name=task_name, img='', channel=channel, user=user_mld,
-                                           parse_task=task, criterion=pub_criterion, mode=PublicatorModes.Period.value,
-                                           period=5*60, bot=bot_mld,
+                                           parse_task=task, criterion=pub_criterion, mode=PublicatorModes.New.value,
+                                           period=5*60, bot=bot_mld, delete_public_post=1,
                                            telegraph_token=telegraph_token, author_caption='', author_name=bot.name,
                                            cr_dt=cr_dt, autostart=1,
                                            author_url=f'https://t.me/{bot.url}', premoderate=0,
@@ -439,11 +429,31 @@ async def getter_vk_sync_maked(**_kwargs):
             parse_task.delete_instance()
             return
         # Запускаем бот
-        pass
+        try:
+            pass
+            # if bot_mld.interface == None:
+            #     bot_mld.interface = 'None'
+            # Bot_interface = get_bot_interface(bot_mld.interface)
+            # bot_interface = Bot_interface()
+            # bot = BotExt(token=bot_mld.token, parse_mode=bot_mld.parse_mode, active=bot_mld.active, public=bot_mld.public, dispatcher=bot_interface.dp)
+            # current_bots.append(bot)
+            # await bot.start_polling_task()
+        except Exception as ex:
+            bots_loger.error(
+                f'Ошибка запуска созданного бота <{bot_mld.name}> (key: {bot_mld.get_id()}). Ошибка: {ex}')
         # Запускаем задачу парсеринга
-        pass
+        try:
+            pass
+            #res = await parsers_dispatcher.start_task(task.get_id(), parsing)
+        except Exception as ex:
+            bots_loger.error(
+                f'Ошибка запуска вновь созданной задачи <{task.name}> (key: {task.get_id()}). Ошибка: {ex}')
         # Запускаем публикатор
-        pass
+        try:
+            #start_publicator_process(publicator)
+            pass
+        except Exception as ex:
+            bots_loger.error(f'Ошибка запуска вновь созданного публикатора <{publicator.name}> (key: {publicator.get_id()}). Ошибка: {ex}')
     except Exception as ex:
         bots_loger.error(f'Ошибка создания синхронизации. Пользователь (tg_id) <{user_id}>. Ошибка: {ex}')
         greeting = f'Ошибка синхронизации. Пожалуйста сообщите о проблеме администратору.'
@@ -460,48 +470,48 @@ dialog_interface=(Window(
         Format('{greeting}'),
         Next(Const(BUTTONS['start_make_sync']), id="btn_start_make_sync"),
         getter=getter_make_vk_sync,
-        state=SG_enter_token_menu.make_vk_sync,
+        state=states.SG_enter_token_menu.make_vk_sync,
     ),
     Window(
         Format('{greeting}'),
         MessageInput(bot_token_handler, content_types=[ContentType.TEXT]),
-        SwitchTo(Const(BUTTONS['why_bot']), id="btn_why_bot", state=SG_enter_token_menu.why_bot),
-        SwitchTo(Const(BUTTONS['to_start']), id="btn_main_menu", state=SG_enter_token_menu.make_vk_sync),
+        SwitchTo(Const(BUTTONS['why_bot']), id="btn_why_bot", state=states.SG_enter_token_menu.why_bot),
+        SwitchTo(Const(BUTTONS['to_start']), id="btn_main_menu", state=states.SG_enter_token_menu.make_vk_sync),
         getter=getter_make_bot,
-        state=SG_enter_token_menu.make_bot,
+        state=states.SG_enter_token_menu.make_bot,
     ),
     Window(
         Format('{greeting}'),
         MessageInput(get_channel_handler, content_types=[ContentType.TEXT]),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.make_bot),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.make_bot),
         getter=getter_get_channel,
-        state=SG_enter_token_menu.get_channel,
+        state=states.SG_enter_token_menu.get_channel,
     ),
     Window(
         Format('{greeting}'),
         MessageInput(vk_token_handler, content_types=[ContentType.TEXT]),
-        SwitchTo(Const(BUTTONS['зачем токен']), id="btn_why_token", state=SG_enter_token_menu.why_token),
-        SwitchTo(Const(BUTTONS['как получить токен']), id="btn_where_token", state=SG_enter_token_menu.where_token),
-        SwitchTo(Const(BUTTONS['у меня есть токен']), id="btn_token_got", state=SG_enter_token_menu.token_got),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.get_channel),
+        SwitchTo(Const(BUTTONS['зачем токен']), id="btn_why_token", state=states.SG_enter_token_menu.why_token),
+        SwitchTo(Const(BUTTONS['как получить токен']), id="btn_where_token", state=states.SG_enter_token_menu.where_token),
+        SwitchTo(Const(BUTTONS['у меня есть токен']), id="btn_token_got", state=states.SG_enter_token_menu.token_got),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.get_channel),
         getter=getter_make_vk_token,
-        state=SG_enter_token_menu.get_vk_token,
+        state=states.SG_enter_token_menu.get_vk_token,
     ),
     Window(
         Format('{greeting}'),
         MessageInput(vk_token_handler, content_types=[ContentType.TEXT]),
         #Back(Const(BUTTONS['назад']), id="btn_getter_token_got_back"),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.get_vk_token),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.get_vk_token),
         getter=getter_token_got,
-        state=SG_enter_token_menu.token_got,
+        state=states.SG_enter_token_menu.token_got,
     ),
     Window(
         Format('{greeting}'),
         MessageInput(user_id_handler, content_types=[ContentType.TEXT]),
         #Back(Const(BUTTONS['назад']), id="btn_get_user_id_back"),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.token_got),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.token_got),
         getter=getter_user_id,
-        state=SG_enter_token_menu.get_user_id,
+        state=states.SG_enter_token_menu.get_user_id,
     ),
     Window(
         Format('{greeting}'),
@@ -517,17 +527,17 @@ dialog_interface=(Window(
             height=5,
             id="scroll_with_pager",
         ),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.get_vk_token),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.get_vk_token),
         getter=getter_dlg_create_assign_vk,
-        state=SG_enter_token_menu.create_assign_vk,
+        state=states.SG_enter_token_menu.create_assign_vk,
     ),
     Window(
         Format('{greeting}'),
         # Back(Const(BUTTONS['назад']), id="btn_get_user_id_back"),
-        SwitchTo(Const(BUTTONS['make_sync']), id="btn_make_sync", state=SG_enter_token_menu.vk_sync_maked),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.create_assign_vk),
+        SwitchTo(Const(BUTTONS['make_sync']), id="btn_make_sync", state=states.SG_enter_token_menu.vk_sync_maked),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.create_assign_vk),
         getter=getter_vk_sync_final,
-        state=SG_enter_token_menu.make_vk_sync_final,
+        state=states.SG_enter_token_menu.make_vk_sync_final,
     ),
     Window(
         Format('{greeting}'),
@@ -536,28 +546,28 @@ dialog_interface=(Window(
         #SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.get_vk_token),
         Cancel(Const('Закончить настройку'), id="btn_cancel"),
         getter=getter_vk_sync_maked,
-        state=SG_enter_token_menu.vk_sync_maked,
+        state=states.SG_enter_token_menu.vk_sync_maked,
     ),
     Window(
         Format('{greeting}'),
         # Back(Const(BUTTONS['назад']), id="btn_why_token_back"),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.make_bot),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.make_bot),
         getter=getter_why_bot,
-        state=SG_enter_token_menu.why_bot,
+        state=states.SG_enter_token_menu.why_bot,
     ),
     Window(
         Format('{greeting}'),
         # Back(Const(BUTTONS['назад']), id="btn_why_token_back"),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.get_vk_token),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.get_vk_token),
         getter=getter_why_token,
-        state=SG_enter_token_menu.why_token,
+        state=states.SG_enter_token_menu.why_token,
     ),
     Window(
         Format('{greeting}'),
         # Back(Const(BUTTONS['назад']), id="btn_where_token_back"),
-        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=SG_enter_token_menu.get_vk_token),
+        SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.get_vk_token),
         getter=getter_where_token,
-        state=SG_enter_token_menu.where_token,
+        state=states.SG_enter_token_menu.where_token,
     ))
 
 dialog_start_menu = Dialog(*dialog_interface)

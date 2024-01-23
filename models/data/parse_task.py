@@ -34,7 +34,6 @@ class ParseTask(Model):
     #posting_mode = IntegerField() # режим публикации class Posting_modes(enum.Enum):
     last_post_id = IntegerField() # id последнего спарсеного поста (для ВК)
     filter = CharField(null=True) # фильтр (для ВК)
-    delete_public_post = IntegerField(default=0)
     options = CharField(null=True) # произвольные опции
     cr_dt = DateTimeField() # дата создания задачи
     active = IntegerField()  # флаг автостарта (используется для автозапуска)

@@ -132,7 +132,7 @@ commands.append(
 )
 
 async def start_task_process(taskname: str):
-    res = await parsers_dispatcher.start_task(taskname, parsing)
+    res = await parsers_dispatcher.start_task(taskname=taskname, func=parsing)
     return res
 
 commands.append(

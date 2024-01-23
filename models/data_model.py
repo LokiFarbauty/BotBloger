@@ -14,6 +14,17 @@ import inspect
 import models.dm_config as dm_config
 from models.data.user import User
 from models.data.parser import Parser
+from models.data.post import Post
+from models.data.photo import Photo
+from models.data.audio import Audio
+from models.data.audio_upload import AudioUpload
+from models.data.video import Video
+from models.data.docs import Doc
+from models.data.poll import Poll
+from models.data.link import Link
+from models.data.post_text_FTS import PostText
+from models.data.post_hashtag import Post_Hashtag
+#from models.data.post_hashtag import Post_Hashtag
 
 class Errors(enum.Enum):
     NoError = 0
@@ -84,6 +95,44 @@ def create_admin():
                                 description='', token=adm_vk_token, public=0, cr_dt=0)
         parser.save()
 
+def delete_post(post_key: int):
+    try:
+        post = Post.get_by_id(post_key)
+        # Удаляем картинки
+        photos = Photo.delete().where(Photo.owner == post)
+        photos.execute()
+        # Удаляем аудио
+        audios = Audio.select().where(Audio.owner == post)
+        for audio in audios:
+            audio_uploads = AudioUpload.select().where(AudioUpload.audio == audio)
+            for audio_upload in audio_uploads:
+                audio_upload.delete_instance()
+            audio.delete_instance()
+        # Удаляем видео
+        videos = Video.delete().where(Video.owner == post)
+        videos.execute()
+        # Удаляем линки
+        links = Link.delete().where(Link.owner == post)
+        links.execute()
+        # Удаляем доки
+        docs = Doc.delete().where(Doc.owner == post)
+        docs.execute()
+        # Удаляем опросы
+        polls = Poll.delete().where(Poll.owner == post)
+        polls.execute()
+        # Удаляем хэштэги
+        hashtags = Post_Hashtag.delete().where(Post_Hashtag.post == post)
+        hashtags.execute()
+        # Удаляем пост и текст
+        PostText.delete_by_id(post.get_id())
+        post.delete_instance()
+    except Exception as ex:
+        return f'Ошибка: {ex}.'
+    return 0
+
+
+
+
 if not isfile(dm_config.DB_FILE_PATH):
     try:
         create_data_model()
@@ -93,6 +142,8 @@ if not isfile(dm_config.DB_FILE_PATH):
 else:
     create_data_model()
     create_admin()
+
+
 
 
 

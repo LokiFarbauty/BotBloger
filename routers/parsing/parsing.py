@@ -74,6 +74,7 @@ async def parsing(**_kwargs):
         infinite_def = _kwargs['infinite_def']
         parser = _kwargs['parser']
         # Ждем немного
+        #delay=1
         delay = random.randrange(start=120, stop=3600)
         if not quick_start: await asyncio.sleep(delay)
         #
@@ -157,7 +158,7 @@ async def parsing(**_kwargs):
                 if task.criterion.post_max_text_length==None:
                     max_text_len = PARSE_VK_MAX_TEXT_LEN
                 else:
-                    max_text_len = task.criterion.post_min_text_length
+                    max_text_len = task.criterion.post_max_text_length
                 # Проверяем есть ли среди постов last_post_id и отрезаем все, что за ним
                 # У первого спарсеного поста будет максимальный post_id и если он уже ессть в базе то то что за ним точно есть
                 if parsing_mode == ParsingMode.UPDATE_PERIOD or parsing_mode == ParsingMode.UPDATE_SINGLE:
@@ -166,7 +167,11 @@ async def parsing(**_kwargs):
                         for el in parse_res:
                             if el.post_id <= last_post_id:
                                 end_parse = True
-                                break
+                            if task.criterion.post_start_date > el.dt:
+                                end_parse = True
+                                #break
+                        # Проверяем дату поста
+
                         # max_post_id = parse_res[0].post_id
                         # tmp_post = Post.get_post(post_id=max_post_id, task_id=task, source_id=task.target_id)
                         # if tmp_post != None:

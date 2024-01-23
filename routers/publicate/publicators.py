@@ -21,6 +21,7 @@ from models.data.poll import Poll
 from models.data.photo import Photo
 from models.data.bot import Bot as BotModel
 from models.data.post_text_FTS import PostText
+from models.data_model import delete_post
 
 # routers
 from routers.bots.telegram.bots import get_BotExt, BotStatus
@@ -544,10 +545,14 @@ async def publicating(publicator: Publicator, debug=False):
                             publicator.save()
                             if debug: publicators_loger.info(
                                 f'Публикатор {publicator.name}. Режим публикатора "Новые". Сохраняем последний id поста. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                            if publicator.delete_public_post == 1:
+                                delete_post(post.get_id())
                         else:
                             # Если не новые то прекращаем размещения до следующего периода
                             if debug: publicators_loger.info(
                                 f'Публикатор {publicator.name}. Режим одиночный - другие посты не размещаем. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                            if publicator.delete_public_post == 1:
+                                delete_post(post.get_id())
                             break
                         # пауза между публикациями
                         if debug: publicators_loger.info(

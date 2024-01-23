@@ -162,7 +162,7 @@ async def start_bots():
     cr_bots = await init_bots()
     print(f'Запуск ботов...')
     app_loger.info(f'Запуск ботов...')
-    current_bots = cr_bots
+    current_bots.extend(cr_bots)
     bot_num = 0
     for i, bot in enumerate(current_bots, 0):
         #tasks.append(start_polling(bot))
