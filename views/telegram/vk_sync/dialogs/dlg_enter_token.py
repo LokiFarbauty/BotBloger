@@ -5,7 +5,7 @@ from operator import itemgetter
 from aiogram.types import ContentType, Message
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram_dialog import (
-    Dialog, DialogManager, Window, ChatEvent
+    Dialog, DialogManager, Window, ChatEvent, StartMode
 )
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import SwitchTo, Start, Next, ScrollingGroup, Button, Select, Url, Cancel
@@ -476,6 +476,7 @@ async def on_product_changed(callback: ChatEvent, select: Any, manager: DialogMa
 dialog_interface=(Window(
         Format('{greeting}'),
         Next(Const(BUTTONS['start_make_sync']), id="btn_start_make_sync"),
+        Start(Const(BUTTONS['main_menu']), id="btn_main_menu", state=states.SG_VKSync.start, mode=StartMode.RESET_STACK),
         getter=getter_make_vk_sync,
         state=states.SG_enter_token_menu.make_vk_sync,
     ),

@@ -3,7 +3,7 @@ from operator import itemgetter
 from typing import Any
 from aiogram.types import CallbackQuery, ContentType, Message, FSInputFile
 from aiogram_dialog import (
-    Dialog, DialogManager, Window, ChatEvent
+    Dialog, DialogManager, Window, ChatEvent, StartMode
 )
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram_dialog.widgets.input import MessageInput
@@ -30,6 +30,7 @@ from datetime import datetime
 # dialogs
 from views.telegram.vk_sync import states
 from views.telegram.vk_sync.dialogs.dlg_config_bot import SG_bot_config
+from views.telegram.vk_sync.interface_config import NUM_FREE_SYNC
 
 
 async def getter_confirm_remove_sync(**_kwargs):
@@ -101,7 +102,7 @@ async def getter_start(**_kwargs):
         publicators = Publicator.select().where(Publicator.user==user_mld)
         sync_str = ''
         for p_task in publicators:
-            sync_str = f'{sync_str}\n<b>"{p_task.parse_task.target_name}"</b> ➡️ <b>"{p_task.channel.name}"</b> через бот <b>"{p_task.bot.name}"</b>.'
+            sync_str = f'{sync_str}\n🔹 <b>"{p_task.parse_task.target_name}"</b> ➡️ <b>"{p_task.channel.name}"</b> через бот <b>"{p_task.bot.name}"</b>.'
         # user_bot_mld = BotModel.get_bot(user=user_mld)
         # channel = Channel.get_channel(user=user_mld)
         # parse_task = ParseTask.get_task(user=user_mld)
@@ -210,6 +211,15 @@ async def event_make_vk_sync(callback: CallbackQuery, button: Button,
                     dialog_manager: DialogManager):
     try:
         #await callback.answer('...')
+        # Получаем количество синхронизаций пользователя.
+        user_id = callback.from_user.id
+        bot = callback.bot
+        user_mld = User.get_user(user_tg_id=user_id)
+        publicators_num = Publicator.select().where(Publicator.user==user_mld).count()
+        if publicators_num >= NUM_FREE_SYNC:
+            await bot.send_message(user_id, '⚠️ В настоящее время количество синхронизаций для пользователе ограничено до 2.')
+        else:
+            await dialog_manager.start(state=states.SG_enter_token_menu.make_vk_sync)
         pass
     except Exception as ex:
         pass
@@ -223,7 +233,7 @@ dialog_interface = (
         Format('{greeting}'),
         #SwitchTo(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=SG_enter_token_menu.start, when=F["is_not_registered"]),
         Start(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=states.SG_enter_token_menu.make_vk_sync, on_click=event_make_vk_sync, when=F["is_not_registered"]),
-        Start(Const(lexicon.BUTTONS['add_sync']), id="btn_reg", state=states.SG_enter_token_menu.make_vk_sync, on_click=event_make_vk_sync, when=F["is_registered"]),
+        Button(Const(lexicon.BUTTONS['add_sync']), id="btn_add_sync", on_click=event_make_vk_sync, when=F["is_registered"]),
         #SwitchTo(Const(lexicon.BUTTONS['config']), id="btn_config", state=SG_bot_config.show_menu, when=F["is_registered"]),
         #Start(Const(lexicon.BUTTONS['config']), id="btn_config", state=SG_bot_config.show_menu, when=F["is_registered"]),
         #Button(Const(lexicon.BUTTONS['cancel_sync']), id="btn_cancel_sync", on_click=event_cancel_sync, when=F["is_registered"]),
