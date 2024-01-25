@@ -28,8 +28,8 @@ class Criterion(Model):
     hashtags = TextField(null=True) # собирать посты помеченные данными хэштегами
     post_max_text_length = IntegerField(null=True) # максимальная длинна поста
     post_min_text_length = IntegerField(null=True)  # максимальная длинна поста
-    post_start_date = DateTimeField(null=True) # собирать посты от этой даты
-    post_end_date = DateTimeField(null=True) # собирать посты до этой даты
+    post_start_date = DateTimeField(default=0) # собирать посты от этой даты
+    post_end_date = DateTimeField(default=0) # собирать посты до этой даты
     check_mat = IntegerField(default=0)  # проверять ли на наличие мата
     video_platform = IntegerField(null=True)  # проверять ли на соответствие видеоплатформе
     del_hashtags = BooleanField(default=0)  # удалять хэштеги

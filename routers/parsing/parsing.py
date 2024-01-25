@@ -135,14 +135,14 @@ async def parsing(**_kwargs):
             # Цикл парсинга
             #for posts_got in rng:
             posts_got = 0
-            posts_got_num = 0
+            got_post_num = 0
             while posts_got<source_post_count:
-                if debug: parsers_loger.info(f'Начато выполнение задачи <{task.name}>.')
                 if end_parse:
                     # Если установлен флаг прекращения парсинга останавливаемся
                     #print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
-                    if debug: parsers_loger.info(f'Выполнение задачи <{task.name}> прекращено командой <break>. Загружено {posts_got_num} постов.')
+                    if debug: parsers_loger.info(f'Выполнение задачи <{task.name}> прекращено командой <break>. Загружено {got_post_num} постов.')
                     break
+                if debug: parsers_loger.info(f'Начато выполнение задачи <{task.name}>.')
                 # Парсим
                 params.offset = posts_got
                 conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
@@ -171,24 +171,35 @@ async def parsing(**_kwargs):
                 if parsing_mode == ParsingMode.UPDATE_PERIOD or parsing_mode == ParsingMode.UPDATE_SINGLE:
                     try:
                         # Ищем в пуле постов пост_ид который меньше заданного, если находим то отрезаем всё что после него, если не находим парсим дальше и устанавливаем флаг прекращения.
-                        cut_pos = len(parse_res)
-                        for i, el in enumerate(parse_res, start=0):
-                            # Проверяем последний id
-                            if el.post_id <= last_post_id:
-                                cut_pos = i
-                                end_parse = True
-                                break
-                        # Обрезаем лишние посты
-                        parse_res = parse_res[:cut_pos]
+                        if last_post_id != 0:
+                            cut_pos = len(parse_res)
+                            for i, el in enumerate(parse_res, start=0):
+                                # Проверяем последний id
+                                if el.post_id <= last_post_id:
+                                    cut_pos = i
+                                    end_parse = True
+                                    break
+                            # Обрезаем лишние посты
+                            parse_res = parse_res[:cut_pos]
                         # Проверяем дату поста
-                        cut_pos = len(parse_res)
-                        for i, el in enumerate(parse_res, start=0):
-                            if task.criterion.post_start_date > el.dt:
-                                cut_pos = i
-                                end_parse = True
-                                break
-                        # Обрезаем лишние посты
-                        parse_res = parse_res[:cut_pos]
+                        if task.criterion.post_start_date != 0:
+                            cut_pos = len(parse_res)
+                            for i, el in enumerate(parse_res, start=0):
+                                if task.criterion.post_start_date > el.dt:
+                                    cut_pos = i
+                                    end_parse = True
+                                    break
+                            # Обрезаем лишние посты
+                            parse_res = parse_res[:cut_pos]
+                        if task.criterion.post_end_date != 0:
+                            cut_pos = len(parse_res)
+                            for i, el in enumerate(parse_res, start=0):
+                                if task.criterion.post_end_date < el.dt:
+                                    cut_pos = i
+                                    end_parse = True
+                                    break
+                            # Обрезаем лишние посты
+                            parse_res = parse_res[cut_pos:]
                         # max_post_id = parse_res[0].post_id
                         # tmp_post = Post.get_post(post_id=max_post_id, task_id=task, source_id=task.target_id)
                         # if tmp_post != None:

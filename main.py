@@ -68,7 +68,7 @@ async def amain():
 
 if __name__ == '__main__':
     try:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.CRITICAL)
         asyncio.run(amain())
         print('Приложение завершено.')
         pass
