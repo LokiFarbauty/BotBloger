@@ -11,6 +11,9 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram.fsm.state import State, StatesGroup
 # routers
 from routers.logers import bots_loger
+from routers.parsing.parsers_dispatсher import parsers_dispatcher
+from routers.publicate.publicators import stop_publicator_process
+import routers.bots.telegram.bots as bots_unit
 # views
 import views.telegram.vk_sync.lexicon as lexicon
 # models
@@ -94,6 +97,21 @@ async def event_cancel_sync(callback: CallbackQuery, button: Button,
         criterion_pub = publicator.criterion
     except:
         criterion_pub = None
+    # Останавливаем бот
+    bot_tg_id = user_bot_mld.tg_id
+    for bot in bots_unit.current_bots:
+        try:
+            if bot.tg_id == int(bot_tg_id):
+                was_cancelled = await bot.stop_polling()
+                bots_loger.info(was_cancelled)
+        except Exception as ex:
+            bots_loger.error(f'Ошибка при остановке бота (удаление синхронизации) <{bot_tg_id}>: {ex}')
+    # Останавливаем парсинг
+    res = parsers_dispatcher.stop_task(parse_task.name)
+    bots_loger.info(res)
+    # Останавливаем публикатор
+    res = stop_publicator_process(publicator.name)
+    bots_loger.info(res)
     # Удаляем все
     try:
         if publicator != None:

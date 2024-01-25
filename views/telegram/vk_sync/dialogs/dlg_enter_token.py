@@ -285,7 +285,7 @@ async def getter_dlg_create_assign_vk(**_kwargs):
         tmp_msg = await bot.send_message(user_id, 'Получаю данные, подождите....')
         #user = User.get_user(user_key=user.id)
         token = dm.dialog_data['access_token']
-        target_id = dm.dialog_data['vk_user_id']
+        target_id = int(dm.dialog_data['vk_user_id'])
         parser = parsers_dispatcher.get_parser('ВКонтакте')
         group_names = []
         group_types = []
@@ -312,7 +312,7 @@ async def getter_dlg_create_assign_vk(**_kwargs):
                     except:
                         group_name = 'None'
                     group_names.append(group_name)
-            except:
+            except Exception as ex:
                 groups = []
                 await bot.send_message(user_id, '⚠️ Группы ВК, которые вы администрируете, не обнаружены.')
                 await dm.done()
