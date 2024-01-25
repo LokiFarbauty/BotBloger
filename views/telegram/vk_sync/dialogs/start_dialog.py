@@ -157,7 +157,10 @@ dialog_interface = (Window(
         #SwitchTo(Const(lexicon.BUTTONS['config']), id="btn_config", state=SG_bot_config.show_menu, when=F["is_registered"]),
         #Start(Const(lexicon.BUTTONS['config']), id="btn_config", state=SG_bot_config.show_menu, when=F["is_registered"]),
         Button(Const(lexicon.BUTTONS['cancel_sync']), id="btn_cancel_sync", on_click=event_cancel_sync, when=F["is_registered"]),
-        getter=getter_start,
+        Start(Const(lexicon.BUTTONS['add_sub']), id="btn_add_sub", state=states.SG_enter_token_menu.make_vk_sync,
+              on_click=event_make_vk_sync, when=F["is_registered"]),
+
+    getter=getter_start,
         state=states.SG_VKSync.start,
         ),
     )
