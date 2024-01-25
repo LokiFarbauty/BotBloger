@@ -130,7 +130,11 @@ class ParserDispatcher:
             return ASTaskStatus.Cancelled
         return ASTaskStatus.Active
 
-    def stop_task(self, taskname: str):
+    # def remove_task(self, taskname: str):
+    #     # Удаляет задачу
+    #     pass
+
+    def stop_task(self, taskname: str, remove_task_process=True):
         # Получаем задачу
         try:
             task_status = self.get_task_status(taskname)
@@ -138,6 +142,8 @@ class ParserDispatcher:
                 tp = self.get_task_process(taskname)
                 if tp != None:
                     tp.cancel()
+                    if remove_task_process:
+                        self.tasks.remove(tp)
                     task = ParseTask.get_task(name=taskname)
                     if task != None:
                         task.state = ParseTaskStates.Stopped.value

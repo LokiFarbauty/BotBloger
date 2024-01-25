@@ -99,10 +99,10 @@ async def event_cancel_sync(callback: CallbackQuery, button: Button,
         criterion_pub = None
     # Останавливаем бот
     bot_tg_id = user_bot_mld.tg_id
-    for bot in bots_unit.current_bots:
+    for bot_el in bots_unit.current_bots:
         try:
-            if bot.tg_id == int(bot_tg_id):
-                was_cancelled = await bot.stop_polling()
+            if bot_el.tg_id == int(bot_tg_id):
+                was_cancelled = await bot_el.stop_polling()
                 bots_loger.info(was_cancelled)
         except Exception as ex:
             bots_loger.error(f'Ошибка при остановке бота (удаление синхронизации) <{bot_tg_id}>: {ex}')
@@ -111,7 +111,7 @@ async def event_cancel_sync(callback: CallbackQuery, button: Button,
     bots_loger.info(res)
     # Останавливаем публикатор
     res = stop_publicator_process(publicator.name)
-    bots_loger.info(res)
+    bots_loger.info(f'Публикатор <{publicator.name}> - <{res}>')
     # Удаляем все
     try:
         if publicator != None:

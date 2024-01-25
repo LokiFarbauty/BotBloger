@@ -68,33 +68,41 @@ async def parsing(**_kwargs):
 
     '''
     try:
-        debug = True
+        debug = False
         # Получаем параметры
-        task = _kwargs['task']
+        par_task = _kwargs['task']
         quick_start = _kwargs['quick_start']
         infinite_def = _kwargs['infinite_def']
         parser = _kwargs['parser']
         # Ждем немного
-        #delay=1
-        delay = random.randrange(start=120, stop=3600)
-        if debug: parsers_loger.info(f'Выполнение задачи <{task.name}> начнётся через {delay/60} мин.')
+        delay=1
+        #delay = random.randrange(start=120, stop=3600)
+        if debug: parsers_loger.info(f'Выполнение задачи <{par_task.name}> начнётся через {delay/60} мин.')
         if not quick_start: await asyncio.sleep(delay)
         #
-        task.state = ParseTaskStates.InWork.value
-        task.error = None
-        task.save()
-        token = task.parser.token
+        par_task.state = ParseTaskStates.InWork.value
+        par_task.error = None
+        par_task.save()
+        token = par_task.parser.token
         #parser = parsing_dispatcher.get_parser(task.parser.platform)
         post_num = PARSE_VK_POST_NUM
-        if task.post_num != infinite_def:
-            if (task.post_num<PARSE_VK_POST_NUM) and (task.post_num>0):
-                post_num = task.post_num
-        params = ParseParams(target_id=task.target_id, target_type=task.target_type, token=token, post_count=post_num,
-                             filter=task.filter, use_free_proxy=False)
-        period = task.period
+        if par_task.post_num != infinite_def:
+            if (par_task.post_num<PARSE_VK_POST_NUM) and (par_task.post_num>0):
+                post_num = par_task.post_num
+        # params = ParseParams(target_id=par_task.target_id, target_type=par_task.target_type, token=token, post_count=post_num,
+        #                      filter=par_task.filter, use_free_proxy=False)
+        # period = par_task.period
         # Определяем режим парсинга
-        parse_mode = task.mode
+        parse_mode = par_task.mode
         while True:
+            # Проверяем что задача еще существует
+            task = ParseTask.get_task(key=par_task.get_id())
+            if task == None:
+                return
+            params = ParseParams(target_id=task.target_id, target_type=task.target_type, token=token,
+                                 post_count=post_num,
+                                 filter=task.filter, use_free_proxy=False)
+            period = task.period
             # Определяем счетчики
             task_post_num = task.post_num
             if task_post_num == 'all':

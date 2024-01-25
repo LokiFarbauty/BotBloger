@@ -418,7 +418,7 @@ async def getter_vk_sync_maked(**_kwargs):
                                            parse_task=task, criterion=pub_criterion, mode=PublicatorModes.New.value,
                                            period=5*60, bot=bot_mld, delete_public_post=1,
                                            telegraph_token=telegraph_token, author_caption='', author_name=bot.name,
-                                           cr_dt=cr_dt, autostart=1,
+                                           cr_dt=cr_dt, autostart=1, start_public_hour=0, end_public_hour=23,
                                            author_url=f'https://t.me/{bot.url}', premoderate=0,
                                            state=PublicatorStates.Working.value)
         else:
@@ -438,19 +438,22 @@ async def getter_vk_sync_maked(**_kwargs):
             bot = BotExt(token=bot_mld.token, parse_mode=bot_mld.parse_mode, active=bot_mld.active, public=bot_mld.public, dispatcher=bot_interface.dp)
             current_bots.append(bot)
             await bot.start_polling_task()
+            bots_loger.info(f'Вновь созданный пользователем <{user_mld.username}> бот <{bot.name}> запущен.')
         except Exception as ex:
             bots_loger.error(
-                f'Ошибка запуска созданного бота <{bot_mld.name}> (key: {bot_mld.get_id()}). Ошибка: {ex}')
+                f'Ошибка запуска созданного пользователем <{user_mld.username}> бота <{bot_mld.name}> (key: {bot_mld.get_id()}). Ошибка: {ex}')
         # Запускаем задачу парсеринга
         try:
             pass
-            res = await parsers_dispatcher.start_task(task.get_id(), parsing)
+            res = await parsers_dispatcher.start_task(task_key=task.get_id(), func=parsing)
+            bots_loger.info(res)
         except Exception as ex:
             bots_loger.error(
                 f'Ошибка запуска вновь созданной задачи <{task.name}> (key: {task.get_id()}). Ошибка: {ex}')
         # Запускаем публикатор
         try:
-            start_publicator_process(publicator)
+            res=start_publicator_process(publicator)
+            bots_loger.info(f'{res}')
             pass
         except Exception as ex:
             bots_loger.error(f'Ошибка запуска вновь созданного публикатора <{publicator.name}> (key: {publicator.get_id()}). Ошибка: {ex}')

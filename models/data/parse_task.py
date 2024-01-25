@@ -71,7 +71,7 @@ class ParseTask(Model):
                 queryes.append(cls.id == key)
             if name != '':
                 queryes.append(cls.name == name)
-            if user != '':
+            if user != 0:
                 queryes.append(cls.user == user)
             task = cls.get(*queryes)
             return task

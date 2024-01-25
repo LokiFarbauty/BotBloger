@@ -170,12 +170,14 @@ def get_publicator_process(name: str):
             return el
     return None
 
-def stop_publicator_process(name: str):
+def stop_publicator_process(name: str, remove_process = True):
     for el in current_publicators_process:
         el_name = el.get_name()
         if el_name == name:
             try:
                 el.cancel()
+                if remove_process:
+                    current_publicators_process.remove(el)
                 # Меняем статус в базе
                 publ = Publicator.get_publicator(name=name)
                 if publ != None:
@@ -183,7 +185,7 @@ def stop_publicator_process(name: str):
                     publ.save()
             except Exception as ex:
                 return ex
-    return PBTaskStatus.NotFound
+    return PBTaskStatus.Cancelled
 
 def start_publicator_process(publicator: Publicator):
     # Ищем была ли задача и удаляем ее из списка
@@ -430,16 +432,20 @@ async def get_random_posts(condition, old_posts=None):
     return posts
 
 
-async def publicating(publicator: Publicator, debug=False):
+async def publicating(par_publicator: Publicator, debug=False):
     '''Поток публикатора, в котором он периодически получает из базы посты и публикует их в канал'''
     try:
-        if debug: publicators_loger.info(f'Публикатор {publicator.name} готов к старту. Задержка {publicator.delay} сек.')
-        await asyncio.sleep(int(publicator.delay))
-        if debug: publicators_loger.info(f'Публикатор {publicator.name} запущен.')
+        if debug: publicators_loger.info(f'Публикатор {par_publicator.name} готов к старту. Задержка {par_publicator.delay} сек.')
+        await asyncio.sleep(int(par_publicator.delay))
+        if debug: publicators_loger.info(f'Публикатор {par_publicator.name} запущен.')
     except:
-        publicators_loger.error(f'Задержка публикатора {publicator.name} задана не правильно.')
+        publicators_loger.error(f'Задержка публикатора {par_publicator.name} задана не правильно.')
     while True:
         try:
+            # Проверяем что публикатор еще существует
+            publicator = Publicator.get_publicator(key=par_publicator.get_id())
+            if publicator == None:
+                return
             # Спим 5 секунд
             await asyncio.sleep(10)
             # Проверяем время публикации
