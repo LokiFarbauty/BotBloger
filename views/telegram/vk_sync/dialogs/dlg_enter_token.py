@@ -73,11 +73,11 @@ async def bot_token_handler(message: Message, message_input: MessageInput,
         await message.answer(f'❌ <b>"{bot_token}"</b> - не является токеном телеграм-бота.')
         return
     # Проверяем токен на уникальность
-    bot_mld = BotModel.get_bot(token=bot_token)
-    if bot_mld != None:
-        await message.answer(
-            f'❌ <b>"{bot_token}"</b> - данный бот уже используется для администрирования канала. Если он принадлежит Вам, пожалуйста напишите администратору.')
-        return
+    # bot_mld = BotModel.get_bot(token=bot_token)
+    # if bot_mld != None:
+    #     await message.answer(
+    #         f'❌ <b>"{bot_token}"</b> - данный бот уже используется для администрирования канала. Если он принадлежит Вам, пожалуйста напишите администратору.')
+    #     return
     # Проверка бота
     try:
         test_bot = Bot(token=bot_token)
@@ -367,6 +367,10 @@ async def getter_vk_sync_maked(**_kwargs):
         group_type = group_types[group_index]
         set_admin_url = f'tg://resolve?domain={bot_url}&startchannel&admin=invite_users+post_messages+edit_messages+delete_messages'
         bot_options={}
+        # Проверяем, что выбранный ВК ресурс уже не был добавлен
+        check_task = ParseTask.get_task(user=user_mld, target_id=vk_group_id)
+        if check_task != None:
+            await bot.send_message(user_id, f'"{group_name}" уже синхронизирована.')
         # Получаем токен telepra.ph
         telegraph = Telegraph()
         telegraph_account = telegraph.create_account(user_mld.username, bot.name, f'https://t.me/{bot.url}')
@@ -528,6 +532,7 @@ dialog_interface=(Window(
             ),
             width=1,
             height=5,
+            hide_on_single_page=True,
             id="scroll_with_pager",
         ),
         SwitchTo(Const(BUTTONS['назад']), id="btn_back", state=states.SG_enter_token_menu.get_vk_token),

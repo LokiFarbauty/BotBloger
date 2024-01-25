@@ -64,7 +64,7 @@ class ParseTask(Model):
         database = db  # this model uses the "people.db" database
 
     @classmethod
-    def get_task(cls, key=0, name='', user=0):
+    def get_task(cls, key=0, name='', user=0, target_id=0):
         try:
             queryes = []
             if key != 0:
@@ -73,6 +73,8 @@ class ParseTask(Model):
                 queryes.append(cls.name == name)
             if user != 0:
                 queryes.append(cls.user == user)
+            if target_id != 0:
+                queryes.append(cls.target_id == target_id)
             task = cls.get(*queryes)
             return task
         except Exception as ex:
