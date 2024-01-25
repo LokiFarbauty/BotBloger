@@ -166,31 +166,31 @@ class ParserDispatcher:
             else:
                 task = ParseTask.get_by_id(task_key)
             if task == None:
-                return f'Задача "{taskname}" не найдена в базе.'
+                return f'Задача "{task.name}" не найдена в базе.'
             else:
                 task.state = ParseTaskStates.InWork.value
                 task.save()
-            task_process = self.get_task_process(taskname)
+            task_process = self.get_task_process(task.name)
             _kwargs['task'] = task
             _kwargs['infinite_def'] = INFINITE
             _kwargs['parser'] = self.get_parser(task.parser.platform)
             if task_process == None:
                 _kwargs['quick_start'] = True
                 #self.tasks.append(asyncio.create_task(func(task, quick_start=True), name=taskname))
-                self.tasks.append(asyncio.create_task(func(**_kwargs), name=taskname))
-                return f'Задача "{taskname}" запущена.'
+                self.tasks.append(asyncio.create_task(func(**_kwargs), name=task.name))
+                return f'Задача "{task.name}" запущена.'
             else:
-                task_status = self.get_task_status(taskname)
+                task_status = self.get_task_status(task.name)
                 if task_status == ASTaskStatus.Active:
-                    return f'Задача "{taskname}" уже запущена.'
+                    return f'Задача "{task.name}" уже запущена.'
                 else:
                     self.tasks.remove(task_process)
                     _kwargs['quick_start'] = False
                     #self.tasks.append(asyncio.create_task(func(task), name=taskname))
-                    self.tasks.append(asyncio.create_task(func(**_kwargs), name=taskname))
-                    return f'Задача "{taskname}" запущена.'
+                    self.tasks.append(asyncio.create_task(func(**_kwargs), name=task.name))
+                    return f'Задача "{task.name}" запущена.'
         except Exception as ex:
-            return f'Запуск задачи "{taskname}" не удался, причина: {ex}'
+            return f'Запуск задачи "{task.name}" не удался, причина: {ex}'
 
     async def init_tasks(self):
         # Получаем список задач из базы
