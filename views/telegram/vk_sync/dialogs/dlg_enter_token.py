@@ -22,7 +22,7 @@ from views.telegram.vk_sync import states
 #
 from models.data.parser import Parser
 from models.data.user import User
-from models.data.parse_task import ParseTask, ParseTaskStates, ParseTaskActive
+from models.data.parse_task import ParseTask, ParseTaskStates, ParseTaskActive, ParseModes
 from models.data.publicator import Publicator, PublicatorStates, PublicatorModes
 from models.data.channel import Channel, ChannelTypes
 from models.data.criterion import Criterion
@@ -402,7 +402,7 @@ async def getter_vk_sync_maked(**_kwargs):
                                     target_id=vk_group_id,
                                     target_name=group_name, target_type=group_type, filter=vk_filter,
                                     cr_dt=cr_dt, post_num='all', state=ParseTaskStates.Stopped.value,
-                                    last_post_id=0,
+                                    last_post_id=0, mode=ParseModes.New.value,
                                     active=ParseTaskActive.InWork.value, period=10*60)
         else:
             await bot.send_message(user_id,
@@ -431,26 +431,26 @@ async def getter_vk_sync_maked(**_kwargs):
         # Запускаем бот
         try:
             pass
-            # if bot_mld.interface == None:
-            #     bot_mld.interface = 'None'
-            # Bot_interface = get_bot_interface(bot_mld.interface)
-            # bot_interface = Bot_interface()
-            # bot = BotExt(token=bot_mld.token, parse_mode=bot_mld.parse_mode, active=bot_mld.active, public=bot_mld.public, dispatcher=bot_interface.dp)
-            # current_bots.append(bot)
-            # await bot.start_polling_task()
+            if bot_mld.interface == None:
+                bot_mld.interface = 'None'
+            Bot_interface = get_bot_interface(bot_mld.interface)
+            bot_interface = Bot_interface()
+            bot = BotExt(token=bot_mld.token, parse_mode=bot_mld.parse_mode, active=bot_mld.active, public=bot_mld.public, dispatcher=bot_interface.dp)
+            current_bots.append(bot)
+            await bot.start_polling_task()
         except Exception as ex:
             bots_loger.error(
                 f'Ошибка запуска созданного бота <{bot_mld.name}> (key: {bot_mld.get_id()}). Ошибка: {ex}')
         # Запускаем задачу парсеринга
         try:
             pass
-            #res = await parsers_dispatcher.start_task(task.get_id(), parsing)
+            res = await parsers_dispatcher.start_task(task.get_id(), parsing)
         except Exception as ex:
             bots_loger.error(
                 f'Ошибка запуска вновь созданной задачи <{task.name}> (key: {task.get_id()}). Ошибка: {ex}')
         # Запускаем публикатор
         try:
-            #start_publicator_process(publicator)
+            start_publicator_process(publicator)
             pass
         except Exception as ex:
             bots_loger.error(f'Ошибка запуска вновь созданного публикатора <{publicator.name}> (key: {publicator.get_id()}). Ошибка: {ex}')

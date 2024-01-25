@@ -21,6 +21,7 @@ from routers.logers import bots_loger
 from routers.bots.bots_utills import get_tg_user_names
 #
 from views.telegram.interface_pattern import BotViewInterface
+from views.telegram.vk_sync import states
 # Диалоги
 #from views.telegram.vk_sync.dialogs.start_dialog import SG_VKSync
 
@@ -108,7 +109,7 @@ class VKSyncView(BotViewInterface):
                                                    state=BotStates.InWork.value)
             except Exception as ex:
                 bots_loger(f'Не удалось обновить информацию о боте: {bot_obj.get_id()}. Ошибка: {ex}')
-            await dialog_manager.start(SG_VKSync.start, mode=StartMode.RESET_STACK, data={'user': user})
+            await dialog_manager.start(states.SG_VKSync.start, mode=StartMode.RESET_STACK, data={'user': user})
         except Exception as ex:
             try:
                 bots_loger.error(f"Ошибка CommandStart() в боте {bot_obj.get_id()}: {ex}")

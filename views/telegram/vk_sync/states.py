@@ -1,5 +1,9 @@
 from aiogram.fsm.state import State, StatesGroup
 
+
+class SG_VKSync(StatesGroup):
+    start = State()
+
 class SG_enter_token_menu(StatesGroup):
     make_vk_sync = State()
     make_bot = State()
@@ -13,3 +17,4 @@ class SG_enter_token_menu(StatesGroup):
     where_token = State()
     why_token = State()
     why_bot = State()
+

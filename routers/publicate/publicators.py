@@ -208,6 +208,7 @@ def start_publicator_process(publicator: Publicator):
 async def public_post_to_channel(publicator: Publicator, post: Post, save_last_post_id = False):
     # Опубликовать пост в канале
     try:
+        state = 'Подготовка к публикации'
         post_key = post.get_id()
         # Получаем id канала
         channel_tg_id = publicator.channel.channel_tg_id

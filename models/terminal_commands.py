@@ -598,6 +598,9 @@ commands.append(
 async def delete_post(post_key: int):
     try:
         post = Post.get_by_id(post_key)
+    except:
+        post = post_key
+    try:
         # Удаляем картинки
         photos = Photo.delete().where(Photo.owner == post)
         photos.execute()
@@ -624,8 +627,11 @@ async def delete_post(post_key: int):
         hashtags = Post_Hashtag.delete().where(Post_Hashtag.post == post)
         hashtags.execute()
         # Удаляем пост и текст
-        PostText.delete_by_id(post.get_id())
-        post.delete_instance()
+        if type(post) is Post:
+            PostText.delete_by_id(post.get_id())
+            post.delete_instance()
+        else:
+            PostText.delete_by_id(post)
     except Exception as ex:
         return f'Ошибка: {ex}.'
     return f'Пост удален.'
@@ -667,7 +673,8 @@ async def delete_task_posts(task_key: int):
             hashtags = Post_Hashtag.delete().where(Post_Hashtag.post == post)
             hashtags.execute()
             # Удаляем пост и текст
-            PostText.delete_by_id(post.get_id())
+            post_id = post.get_id()
+            PostText.delete_by_id(post_id)
             post.delete_instance()
     except Exception as ex:
         return f'Ошибка: {ex}.'

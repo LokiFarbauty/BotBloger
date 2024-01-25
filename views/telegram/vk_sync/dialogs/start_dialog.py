@@ -25,13 +25,12 @@ from models.data.criterion import Criterion
 # other
 from datetime import datetime
 # dialogs
-from views.telegram.vk_sync.dialogs.dlg_enter_token import SG_enter_token_menu
+from views.telegram.vk_sync import states
 from views.telegram.vk_sync.dialogs.dlg_config_bot import SG_bot_config
 
 
 
-class SG_VKSync(StatesGroup):
-    start = State()
+
 
 
 async def check_user_registration(user_tg_id: int):
@@ -136,12 +135,12 @@ async def event_make_vk_sync(callback: CallbackQuery, button: Button,
 dialog_interface = (Window(
         Format('{greeting}'),
         #SwitchTo(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=SG_enter_token_menu.start, when=F["is_not_registered"]),
-        Start(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=SG_enter_token_menu.make_vk_sync, on_click=event_make_vk_sync, when=F["is_not_registered"]),
+        Start(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=states.SG_enter_token_menu.make_vk_sync, on_click=event_make_vk_sync, when=F["is_not_registered"]),
         #SwitchTo(Const(lexicon.BUTTONS['config']), id="btn_config", state=SG_bot_config.show_menu, when=F["is_registered"]),
         #Start(Const(lexicon.BUTTONS['config']), id="btn_config", state=SG_bot_config.show_menu, when=F["is_registered"]),
         Button(Const(lexicon.BUTTONS['cancel_sync']), id="btn_cancel_sync", on_click=event_cancel_sync, when=F["is_registered"]),
         getter=getter_start,
-        state=SG_VKSync.start,
+        state=states.SG_VKSync.start,
         ),
     )
 

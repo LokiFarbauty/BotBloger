@@ -68,6 +68,7 @@ async def parsing(**_kwargs):
 
     '''
     try:
+        debug = True
         # Получаем параметры
         task = _kwargs['task']
         quick_start = _kwargs['quick_start']
@@ -76,6 +77,7 @@ async def parsing(**_kwargs):
         # Ждем немного
         #delay=1
         delay = random.randrange(start=120, stop=3600)
+        if debug: parsers_loger.info(f'Выполнение задачи <{task.name}> начнётся через {delay/60} мин.')
         if not quick_start: await asyncio.sleep(delay)
         #
         task.state = ParseTaskStates.InWork.value
@@ -90,6 +92,8 @@ async def parsing(**_kwargs):
         params = ParseParams(target_id=task.target_id, target_type=task.target_type, token=token, post_count=post_num,
                              filter=task.filter, use_free_proxy=False)
         period = task.period
+        # Определяем режим парсинга
+        parse_mode = task.mode
         while True:
             # Определяем счетчики
             task_post_num = task.post_num
@@ -131,10 +135,13 @@ async def parsing(**_kwargs):
             # Цикл парсинга
             #for posts_got in rng:
             posts_got = 0
+            posts_got_num = 0
             while posts_got<source_post_count:
+                if debug: parsers_loger.info(f'Начато выполнение задачи <{task.name}>.')
                 if end_parse:
                     # Если установлен флаг прекращения парсинга останавливаемся
                     #print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
+                    if debug: parsers_loger.info(f'Выполнение задачи <{task.name}> прекращено командой <break>. Загружено {posts_got_num} постов.')
                     break
                 # Парсим
                 params.offset = posts_got
@@ -164,14 +171,24 @@ async def parsing(**_kwargs):
                 if parsing_mode == ParsingMode.UPDATE_PERIOD or parsing_mode == ParsingMode.UPDATE_SINGLE:
                     try:
                         # Ищем в пуле постов пост_ид который меньше заданного, если находим то отрезаем всё что после него, если не находим парсим дальше и устанавливаем флаг прекращения.
-                        for el in parse_res:
+                        cut_pos = len(parse_res)
+                        for i, el in enumerate(parse_res, start=0):
+                            # Проверяем последний id
                             if el.post_id <= last_post_id:
+                                cut_pos = i
                                 end_parse = True
-                            if task.criterion.post_start_date > el.dt:
-                                end_parse = True
-                                #break
+                                break
+                        # Обрезаем лишние посты
+                        parse_res = parse_res[:cut_pos]
                         # Проверяем дату поста
-
+                        cut_pos = len(parse_res)
+                        for i, el in enumerate(parse_res, start=0):
+                            if task.criterion.post_start_date > el.dt:
+                                cut_pos = i
+                                end_parse = True
+                                break
+                        # Обрезаем лишние посты
+                        parse_res = parse_res[:cut_pos]
                         # max_post_id = parse_res[0].post_id
                         # tmp_post = Post.get_post(post_id=max_post_id, task_id=task, source_id=task.target_id)
                         # if tmp_post != None:
@@ -205,7 +222,8 @@ async def parsing(**_kwargs):
                 posts_got=posts_got+post_num
                 #
             if parsing_mode != ParsingMode.UPDATE_PERIOD:
-                print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
+                #print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
+                if debug: parsers_loger.info(f'Выполнение задачи <{task.name}> завершено. Загружено {got_post_num} постов.')
                 # Сохраняем состояние
                 await task.refresh_task_state(ParseTaskStates.Ended.value)
                 break
@@ -213,6 +231,7 @@ async def parsing(**_kwargs):
             task = ParseTask.get_by_id(task.get_id())
             # Сохраняем состояние
             await task.refresh_task_state(ParseTaskStates.Sleep.value)
+            if debug: parsers_loger.info(f'Задача <{task.name}> уходит в сон на {period/60/60} часов.')
             await asyncio.sleep(period)
     except Exception as ex:
         await task.refresh_task_state(ParseTaskStates.Error.value, ex)

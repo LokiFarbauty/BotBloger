@@ -7,6 +7,7 @@ from routers.logers import app_loger
 #
 
 
+
 current_path = os.path.dirname(os.path.abspath(__file__)) # путь к файлу
 py_path = 'views.telegram'
 

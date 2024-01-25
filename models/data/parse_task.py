@@ -18,6 +18,13 @@ class ParseTaskActive(enum.Enum):
     Stopped = 0 # задача остановлена
     InWork = 1 # задача в работе
 
+class ParseModes(enum.Enum):
+    Ar = 0  # не задан
+    Single = 1 # публиковать один раз случайный пост
+    Period = 2 # публиковать периодически случайный пост
+    Marketing = 3 # режим рекламная компания публиковать самые рейтинговые из диапазона
+    New = 4 # публиковать новые
+
 class ParseTask(Model):
     name = TextField() # имя задачи
     user = ForeignKeyField(User, backref='tasks', null=True) # ссылка на пользователя создавшего задачу
@@ -31,7 +38,7 @@ class ParseTask(Model):
     target_name = CharField(null=True) # id название цели (для ВК)
     target_url = TextField(null=True) # ссылка откуда парсить (для WEB)
     target_type = CharField(null=True) # тип цели (в ВК: user, group ...)
-    #posting_mode = IntegerField() # режим публикации class Posting_modes(enum.Enum):
+    mode = IntegerField() # режим парсинга ParseModes - на данный момент не задействовано, ни на что не влияет, режим определяется параметрами периода и количества постов
     last_post_id = IntegerField() # id последнего спарсеного поста (для ВК)
     filter = CharField(null=True) # фильтр (для ВК)
     options = CharField(null=True) # произвольные опции
