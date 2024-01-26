@@ -32,6 +32,15 @@ from views.telegram.vk_sync import states
 from views.telegram.vk_sync.dialogs.dlg_config_bot import SG_bot_config
 from views.telegram.vk_sync.interface_config import NUM_FREE_SYNC
 
+async def getter_ads(**_kwargs):
+    dm = _kwargs['dialog_manager']
+    event_from_user = _kwargs['event_from_user']
+    user_id = event_from_user.id
+    greeting = 'Данный бот используется для синхронизации. ' \
+               'Если Вам необходим авторепостинг из <b>ВКонтакте</b> в <b>Телеграм</b> можете воспользоваться <a href="https://t.me/VK_sync_tg_bot">синхроботом 🤖</a>.'
+    return {
+        "greeting": greeting,
+    }
 
 async def getter_confirm_remove_sync(**_kwargs):
     dm = _kwargs['dialog_manager']
@@ -124,6 +133,7 @@ async def getter_contacts(**_kwargs):
     return {
         "greeting": greeting,
     }
+
 
 async def event_show_contact(callback: CallbackQuery, button: Button,
                     dialog_manager: DialogManager):
@@ -277,6 +287,11 @@ dialog_interface = (
         ),
         getter=getter_confirm_remove_sync,
         state=states.SG_VKSync.confirm,
+    ),
+    Window(
+        Format('{greeting}'),
+        getter=getter_ads,
+        state=states.SG_VKSync.ads,
     ),
     )
 

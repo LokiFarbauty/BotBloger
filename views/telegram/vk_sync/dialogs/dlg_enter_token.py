@@ -380,7 +380,7 @@ async def getter_vk_sync_maked(**_kwargs):
         bot_options['telegraph_auth'] = telegraph_auth
         # Добавляем пользовательский бот
         bot_mld = BotModel.make(user=user_mld, token=bot_token, parse_mode='HTML', name=bot_name, url=bot_url, active=1, public=0, tg_id=0, db_file='')
-        bot_mld.interface = 'VKSync'
+        bot_mld.interface = 'VKSync_ADS'
         bot_mld.destination = BotDestination.VKSync.value
         bot_mld.options = json.dumps(bot_options)
         bot_mld.save()

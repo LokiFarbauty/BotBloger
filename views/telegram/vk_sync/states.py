@@ -6,6 +6,7 @@ class SG_VKSync(StatesGroup):
     contacts = State()
     remove_sync = State()
     confirm = State()
+    ads = State()
 
 class SG_enter_token_menu(StatesGroup):
     make_vk_sync = State()
