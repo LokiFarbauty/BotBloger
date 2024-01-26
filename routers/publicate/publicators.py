@@ -334,17 +334,31 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         if len(doc_urls) > 10:
             doc_urls = doc_urls[:9]
         if len(doc_urls) == 1:
-            await bot_obj.send_document(chat_id=channel_tg_id, document=doc_urls[0], caption='👆', parse_mode='HTML')
+            try:
+                await bot_obj.send_document(chat_id=channel_tg_id, document=doc_urls[0], caption='👆', parse_mode='HTML')
+            except:
+                try:
+                    await bot_obj.send_message(chat_id=channel_tg_id, text=f'<a href="{doc_urls[0]}">Файл</a>', parse_mode='HTML')
+                except Exception as ex:
+                    publicators_loger.error(f'Не получилось выложить ссылку на документ "{doc_urls[0]}". Ошибка: {ex}')
         elif len(doc_urls) > 1:
             media = []
             first = True
+            docs_str = ''
             for el in doc_urls:
                 if first:
                     media.append(types.InputMediaDocument(media=el, caption='👆', parse_mode='HTML'))
                 else:
                     first = False
                     media.append(types.InputMediaDocument(media=el))
-            await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка документов
+                docs_str = f'{docs_str}<a href="{el}">Файл</a>\n'
+            try:
+                await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка документов
+            except:
+                try:
+                    await bot_obj.send_message(chat_id=channel_tg_id, text=docs_str, parse_mode='HTML')
+                except Exception as ex:
+                    publicators_loger.error(f'Не получилось выложить ссылку на документ "{docs_str}". Ошибка: {ex}')
         # Получаем и выкладываем аудио
         state = 'Размещение аудио'
         audio_mlds = Audio.select().where(Audio.owner == post)
