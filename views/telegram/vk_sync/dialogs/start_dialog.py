@@ -208,11 +208,11 @@ async def event_cancel_sync(callback: CallbackQuery, button: Button,
                 parser.delete_instance()
             except:
                 pass
-        # if user_bot_mld != None:
-        #     try:
-        #         user_bot_mld.delete_instance()
-        #     except:
-        #         pass
+        if user_bot_mld != None:
+            try:
+                user_bot_mld.delete_instance()
+            except:
+                pass
         if channel != None:
             channel.delete_instance()
         await bot.send_message(user_id, '✅ Синхронизация успешно удалена.')
