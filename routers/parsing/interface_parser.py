@@ -60,15 +60,12 @@ class APost():
     def __init__(self, post_id, text, views=0, likes=0, dt=0, keywords_might=0,
                  hashtags='', audios=None, videos=None, photos=None, docs=None, links=None, polls=None):
         self.post_id = post_id
-        #self.task_id = task_id
-        #self.author_id = author_id
         self.text = text
         self.views = views
         self.likes = likes
         self.hashtags = hashtags
         self.text_hash = ''
         self.dt = dt
-        #self.to_locate = to_locate
         self.keywords_might = keywords_might
         if audios==None:
             self.audios=[]
