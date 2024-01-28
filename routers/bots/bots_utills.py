@@ -1,7 +1,32 @@
 '''Вспомогательные функции для работы с телеграм ботом'''
 
 from aiogram.types import User
+from aiogram.enums import ChatMemberStatus
+from aiogram import Bot
 from math import ceil
+import re
+
+async def check_subscription(bot: Bot, channel_id: int, user_id: int) -> bool:
+    '''Проверяет подписан ли пользователь на канал'''
+    res = False
+    user_chnl_status = await bot.get_chat_member(chat_id=channel_id, user_id=user_id)
+    if (user_chnl_status.status == ChatMemberStatus.LEFT) or (user_chnl_status.status == ChatMemberStatus.KICKED) or (user_chnl_status.status == ChatMemberStatus.RESTRICTED):
+        res = False
+    else:
+        res = True
+    # user_channel_status = re.findall(r"\w*", str(user_channel_status))
+    # try:
+    #     if user_channel_status[70] != 'left':
+    #         #Условие для "подписанных"
+    #         res = True
+    #     else:
+    #         res = False
+    # except:
+    #     if user_channel_status[60] != 'left':
+    #         res = True
+    #     else:
+    #         res = False
+    return res
 
 def get_tg_user_names(tg_user: User, default= ''):
     '''Возвращает имена пользователя в телеграмм боте'''

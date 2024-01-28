@@ -24,6 +24,7 @@ class Criterion(Model):
     options = CharField(null=True) # произвольные опции
     key_words = TextField(null=True) # собирать посты в которые входят данные слова
     forbidden_words = TextField(null=True) # запрещенные слова с которыми пост пропускаем
+    replace_words = TextField(null=True) # Слова автозамены (только для парсинга)
     clear_words = TextField(null=True) # слова, которые при парсинге нужно вырезать
     hashtags = TextField(null=True) # собирать посты помеченные данными хэштегами
     post_max_text_length = IntegerField(null=True) # максимальная длинна поста

@@ -25,6 +25,8 @@ class AnalyzerParams:
     hashtags: list[str] = None #
     clear_words: list[str] = None #
     forbidden_words: list[str] = None #
+    #replace_words: dict = None
+    replace_words: str = None
     key_words: list[str] = None #
     key_words_mode: KeyWordsAnalyzeMode = KeyWordsAnalyzeMode.Or  #
     post_start_date: int = 0 #
@@ -139,6 +141,13 @@ def clear_url(text: str) -> str:
                     pos_s = -1
     return text
 
+def replace_words_in_text(text: str, words: dict) -> str:
+    for key in words.keys():
+        old_word = key
+        new_word = words[key]
+        text = text.replace(old_word, new_word)
+    return text
+
 
 async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APost]:
     '''
@@ -213,6 +222,13 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
                             break
                 if cond == False:
                     continue
+        # Заменяем слова
+        if params.replace_words != None:
+            try:
+                rep_words = eval(params.replace_words)
+                posts[i].text = replace_words_in_text(posts[i].text, rep_words)
+            except:
+                pass
         # Очищаем от заданных слов
         if params.clear_words != None:
             clear_words = params.clear_words

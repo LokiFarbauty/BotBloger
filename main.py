@@ -27,6 +27,16 @@ from models.data.bot import Bot as BotModel
 from views.telegram.interface_dispather import load_bot_interfaces
 
 
+# test block
+test_dict = {}
+test_dict['Маш'] = 'Миш'
+test_dict['Вова'] = 'Петя'
+text = 'Привет Маша. Как у Маши дела? Там идет Вова. Да это Вова.'
+#
+
+
+# end test block
+
 
 
 async def main():

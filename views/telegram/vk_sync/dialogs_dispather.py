@@ -18,7 +18,7 @@ from models.data.user_bot import User_Bot
 from models.data.bot import Bot as BotModel, BotStates
 #
 from routers.logers import bots_loger
-from routers.bots.bots_utills import get_tg_user_names
+from routers.bots.bots_utills import get_tg_user_names, check_subscription
 #
 from views.telegram.interface_pattern import BotViewInterface
 from views.telegram.vk_sync import states
@@ -28,6 +28,8 @@ from views.telegram.vk_sync import states
 #dlg_path = MAIN_PATH
 dlg_path = os.path.dirname(os.path.abspath(__file__))+'\\dialogs\\' # путь к файлам диалогов
 py_dlg_path = 'views.telegram.vk_sync.dialogs'
+
+CHANNEL_FOR_SUSCRIBE_ID = -1001918722613
 
 
 def get_dialogs_interfaces(interface_name='dialog_interface',path=dlg_path, py_path=py_dlg_path):
@@ -95,6 +97,12 @@ class VKSyncView(BotViewInterface):
                 return
             # Проверяем пользователя
             user = User_Bot.check_user(bot_obj, user_id, username, firstname, lastname)
+            # Проверяем подписан ли пользователь на канал
+            subscr = await check_subscription(bot, CHANNEL_FOR_SUSCRIBE_ID, user_id)
+            if not subscr:
+                # Пользователь не подписан
+                await message.answer('Для использования бота необходимо подписаться на <a href="https://t.me/+N92fxyiutA83ZmRi">канал</a>. После подписки введите команду /start.', parse_mode='HTML')
+                return
             # print(await bot.get_my_name())
             # Закрываем все ранее открытые диалоги
             try:

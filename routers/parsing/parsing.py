@@ -221,7 +221,7 @@ async def parsing(**_kwargs):
                 # Анализ
                 state = 'анализ'
                 anl_params = AnalyzerParams(task_id=task.get_id(), target_id=task.target_id, min_text_len=min_text_len, max_text_len=max_text_len,
-                                        key_words=task.criterion.key_words, hashtags=task.criterion.hashtags, clear_words=task.criterion.clear_words,
+                                        key_words=task.criterion.key_words, hashtags=task.criterion.hashtags, clear_words=task.criterion.clear_words, replace_words=task.criterion.replace_words,
                                         forbidden_words=task.criterion.forbidden_words, post_start_date=task.criterion.post_start_date, post_end_date=task.criterion.post_end_date,
                                         last_post_id=last_post_id, video_platform=task.criterion.video_platform, del_hashtags=task.criterion.del_hashtags,
                                         url_action=task.criterion.url_action)
