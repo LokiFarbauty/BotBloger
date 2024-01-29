@@ -530,7 +530,10 @@ async def create_publicator(name: str, channel_key: int, task_key: int, bot_key:
         # Получаем канал
         channel = Channel.get_by_id(channel_key)
         # Получаем задачу
-        task = ParseTask.get_by_id(task_key)
+        try:
+            task = ParseTask.get_by_id(task_key)
+        except:
+            return f'Задача <{task_key}> не найдена.'
         # Проверяем есть ли публикатор с таким ключем
         # пример create_publicator: dump, 1, 1, 1, 56cbd6664bcc26ea2e247b50805cb2c3c12efc70bbf3d3dd5148ee1a02ad
         publicator = Publicator.get_publicator(name=name, channel=channel, user=user)
