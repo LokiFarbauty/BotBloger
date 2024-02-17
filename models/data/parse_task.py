@@ -41,7 +41,7 @@ class ParseTask(Model):
     mode = IntegerField() # режим парсинга ParseModes - на данный момент не задействовано, ни на что не влияет, режим определяется параметрами периода и количества постов
     last_post_id = IntegerField() # id последнего спарсеного поста (для ВК)
     filter = CharField(null=True) # фильтр (для ВК)
-    options = CharField(null=True) # произвольные опции
+    options = TextField(null=True) # произвольные опции
     cr_dt = DateTimeField() # дата создания задачи
     active = IntegerField()  # флаг автостарта (используется для автозапуска)
     post_num = IntegerField() # количество постов, которое необходимо собрать (для ВК)
@@ -58,6 +58,10 @@ class ParseTask(Model):
     #post_min_text_length = IntegerField(null=True)  # максимальная длинна поста
     state = IntegerField()  # Результат последнего запуска задачи
     error = TextField(null=True)  # Последняя ошибка задачи
+    avg_post_rate = FloatField(default=0)  # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
+    max_post_rate = FloatField(default=0) # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
+    min_post_rate = FloatField(default=0)  # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
+
 
 
     class Meta:

@@ -12,6 +12,7 @@ class Post(Model):
     views = IntegerField()
     old_views = IntegerField()
     likes = IntegerField(index=True)
+    rate = FloatField(index=True, default=0)
     dt = DateTimeField(index=True)
     telegraph_url = CharField()
     text_hash = TextField(index=True)

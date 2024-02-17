@@ -15,6 +15,7 @@ from routers.parsing.parsing import parsing
 from routers.publicate.telegraph_tools import put_post_to_telegraph
 from routers.publicate.publicators import (public_post_to_channel, get_publicator_process_state,
                                            stop_publicator_process, start_publicator_process)
+from routers.parsing.rating import refresh_posts_rating
 
 commands = []
 
@@ -194,4 +195,13 @@ async def public_post_test(publicator_key: int, post_key: int):
 
 commands.append(
      Command(name='public_post_test', func=public_post_test, args_num=2, help='Размещает пост в канале. Параметры: 1 - ключ публикатора. 2 - ключ поста')
+)
+
+async def calc_rate(parse_task_id: int):
+    parse_task = ParseTask.get_by_id(parse_task_id)
+    await refresh_posts_rating(parse_task)
+    return 'Расчет рейтинга выполнен'
+
+commands.append(
+     Command(name='calc_rate', func=calc_rate, args_num=1, help='Рассчитать рейтинг постов для задачи. Параметры: 1 - parse_task_id (id задачи)')
 )

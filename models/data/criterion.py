@@ -35,6 +35,7 @@ class Criterion(Model):
     video_platform = IntegerField(null=True)  # проверять ли на соответствие видеоплатформе
     del_hashtags = BooleanField(default=0)  # удалять хэштеги
     url_action = IntegerField(default=0)  # Что делать с текстом в котором есть ссылки
+    min_rate = FloatField(default=0) # Минимальный рейтинг от 0 до 1. Отношение кол-во лайков к просмотрам
 
     class Meta:
         database = db  # this model uses the "people.db" database

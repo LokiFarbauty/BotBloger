@@ -11,7 +11,7 @@ DB_PATH = os.path.dirname(os.path.abspath(__file__))+'\\dbs\\' # путь к ф�
 DBM_MODELS_DIR = 'models'
 DBM_DATA_DIR = 'data'
 DBM_DATA_PATH = os.path.dirname(os.path.abspath(__file__))+f'\\{DBM_DATA_DIR}\\' # путь к моделям данных
-DB_FILE_NAME = 'vksync.db' # файл базы данных
+DB_FILE_NAME = 'bb.db' # файл базы данных
 DB_FILE_PATH = DB_PATH + DB_FILE_NAME # путь к файлу базы данных
 
 db = SqliteExtDatabase(DB_FILE_PATH, pragmas=(

@@ -497,6 +497,10 @@ async def publicating(par_publicator: Publicator, debug=False):
                 end_date = publicator.criterion.post_end_date
                 if end_date != None and end_date != 0:
                     sub_condition = ((sub_condition) & (Post.dt < end_date))
+                # Рейтинг
+                min_rate = publicator.criterion.min_rate
+                if min_rate > 0:
+                    sub_condition = ((sub_condition) & (Post.rate >= min_rate))
                 # Длинна текста
                 max_text_len = publicator.criterion.post_max_text_length
                 if max_text_len != None and max_text_len != 0:

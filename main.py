@@ -11,6 +11,7 @@ import views.telegram.interface_dispather # Загрузка интерфейс�
 from routers.console import terminal
 from routers.logers import app_loger
 from routers.bots.telegram.bots import BotExt
+from routers.parsing.rating import get_avg_views
 from routers.bots.telegram.bots import start_bots
 #from routers.bots.errors import BotErrors
 

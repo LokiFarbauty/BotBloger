@@ -681,7 +681,7 @@ async def delete_task_posts(task_key: int):
     return f'Удалено {num} постов.'
 
 commands.append(
-     Command(name='delete_task_posts', func=delete_task_posts, args_num=0, help="Удалить все посты из базы, спарсенные по задаче."
+     Command(name='delete_task_posts', func=delete_task_posts, args_num=1, help="Удалить все посты из базы, спарсенные по задаче."
                                                               " Параметры: task_key: int"))
 
 async def delete_word_posts(word: str):

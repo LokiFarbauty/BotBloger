@@ -8,11 +8,13 @@ import hashlib
 #
 
 from models.data.post import Post
+from models.data.parse_task import ParseTask
 from models.data.criterion import VideoPlatform, UrlAction
 #
 from routers.parsing.text_analyze_tools import check_text_on_keywords, lematize_words
 from routers.parsing.parsing_config import VOID_TEXT_CHAR
 from routers.parsing.interface_parser import APost
+from routers.parsing.rating import get_avg_views
 
 class KeyWordsAnalyzeMode(enum.Enum):
     And = 0
@@ -38,6 +40,7 @@ class AnalyzerParams:
     video_platform: int = 0 # С каких платформ собирать видео 0 - со всех
     del_hashtags: bool = False # Удалять или нет хэштэги
     url_action: int = 0  # что делать с постами в тексте которых есть ссылки
+    min_rate: float = 0 # минимальное отношение лайков к просмотрам
 
 def check_video_platform(videos: list, video_platform: int)-> list:
     '''Проверяет пост на соответсвие видеоплатвормы'''
@@ -65,9 +68,13 @@ def check_text(text: str, forbidden_words: list[str]) -> bool:
         forbidden_words = forbidden_words.split(',')
     forbidden_words = [x.strip() for x in forbidden_words]
     forbidden_words_low = [x.upper() for x in forbidden_words]
+    forbidden_words_capitalize = [x.capitalize() for x in forbidden_words]
+    #forbidden_words_title = [x.title() for x in forbidden_words]
     forbidden_words_up = [x.lower() for x in forbidden_words]
     forbidden_words.extend(forbidden_words_low)
     forbidden_words.extend(forbidden_words_up)
+    forbidden_words.extend(forbidden_words_capitalize)
+    #forbidden_words.extend(forbidden_words_title)
     for forbidden_word in forbidden_words:
         if text.find(forbidden_word) != -1:
             res = False
@@ -148,6 +155,24 @@ def replace_words_in_text(text: str, words: dict) -> str:
         text = text.replace(old_word, new_word)
     return text
 
+def del_vk_url(text: str) -> str:
+    pos_s = 0
+    while pos_s != -1:
+        try:
+            pos_s = text.find('[')
+            if pos_s != -1:
+                pass
+            else:
+                break
+            pos_e = text.find(']')
+            text_tmp = text[pos_s:pos_e+1]
+            # Удаляем цифры из ссылки
+            text_tmp_prc = re.sub(r'[^\w\s]+|[\d]+', r'', text_tmp).strip()
+            text_tmp_prc = text_tmp_prc.replace('id', '')
+            text = text.replace(text_tmp, text_tmp_prc)
+        except:
+            break
+    return text
 
 async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APost]:
     '''
@@ -167,6 +192,22 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
         if params.post_start_date != None and params.post_start_date != 0:
             if params.post_start_date > 0 and post.dt < params.post_start_date:
                 continue
+        # Проверяем рейтинг поста
+        try:
+            parse_task = ParseTask.get_by_id(params.task_id)
+        except:
+            continue
+        min_rate = params.min_rate
+        if post.views == 0:
+            post.views = await get_avg_views(parse_task)
+            posts[i].views = post.views
+        try:
+            post_rate = post.likes / post.views
+        except:
+            post_rate = 0
+        posts[i].rate = post_rate
+        if post_rate < min_rate:
+            continue
         # Проверяем чтобы уже добавленые посты не добавлялись
         # if (params.last_post_id != 0) and (post.post_id <= params.last_post_id):
         #     continue
@@ -243,7 +284,8 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
             for cl_word in clear_words:
                 posts[i].text = posts[i].text.replace(cl_word, '')
         # Удаляем внутренние ссылки ВК
-        posts[i].text = re.sub(r'\[.+?\]\s', '', posts[i].text)
+        #posts[i].text = re.sub(r'\[.+?\]\s', '', posts[i].text)
+        posts[i].text = del_vk_url(posts[i].text)
         # Проверяем текст на уникальность по хэшу
         hash = hashlib.md5(posts[i].text.encode('utf-8'))
         hash_str = hash.hexdigest()

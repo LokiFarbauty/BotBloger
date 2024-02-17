@@ -67,6 +67,7 @@ class APost():
         self.text_hash = ''
         self.dt = dt
         self.keywords_might = keywords_might
+        self.rate = 0
         if audios==None:
             self.audios=[]
         else:

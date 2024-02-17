@@ -5,6 +5,7 @@ from routers.logers import parsers_loger, app_loger
 from routers.parsing.analyzer import analyze_posts, AnalyzerParams
 from routers.parsing.interface_parser import ParserInterface, ParseParams, ParserInterfaceReturns, APost
 from routers.parsing.parsing_config import PARSE_VK_POST_NUM, PARSE_VK_MAX_TEXT_LEN
+from routers.parsing.rating import refresh_avg_rating
 
 # models
 from models.data.parse_task import ParseTask, ParseTaskStates, ParseTaskActive
@@ -75,8 +76,8 @@ async def parsing(**_kwargs):
         infinite_def = _kwargs['infinite_def']
         parser = _kwargs['parser']
         # Ждем немного
-        #delay=1
         delay = random.randrange(start=120, stop=3600)
+        delay=1
         if debug: parsers_loger.info(f'Выполнение задачи <{par_task.name}> начнётся через {delay/60} мин.')
         if not quick_start: await asyncio.sleep(delay)
         #
@@ -224,7 +225,7 @@ async def parsing(**_kwargs):
                                         key_words=task.criterion.key_words, hashtags=task.criterion.hashtags, clear_words=task.criterion.clear_words, replace_words=task.criterion.replace_words,
                                         forbidden_words=task.criterion.forbidden_words, post_start_date=task.criterion.post_start_date, post_end_date=task.criterion.post_end_date,
                                         last_post_id=last_post_id, video_platform=task.criterion.video_platform, del_hashtags=task.criterion.del_hashtags,
-                                        url_action=task.criterion.url_action)
+                                        url_action=task.criterion.url_action, min_rate=task.criterion.min_rate)
                 proc_posts = await analyze_posts(parse_res, anl_params)
                 # if len(proc_posts) == 0:
                 #     reas = f'В анализируемом пуле из {post_num} постов при выполнении задачи "{task.name}" (key: {task.get_id()}) не найдено ни одного подходящего под критерии поста. Задача остановлена.'
@@ -250,6 +251,8 @@ async def parsing(**_kwargs):
                 # Сохраняем состояние
                 await task.refresh_task_state(ParseTaskStates.Ended.value)
                 break
+            # Обновляем рейтинги
+            await refresh_avg_rating(task)
             # Обновляем данные задачи
             task = ParseTask.get_by_id(task.get_id())
             # Сохраняем состояние
