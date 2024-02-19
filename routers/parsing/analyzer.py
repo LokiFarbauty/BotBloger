@@ -165,6 +165,10 @@ def del_vk_url(text: str) -> str:
             else:
                 break
             pos_e = text.find(']')
+            if pos_e != -1:
+                pass
+            else:
+                break
             text_tmp = text[pos_s:pos_e+1]
             # Удаляем цифры из ссылки
             text_tmp_prc = re.sub(r'[^\w\s]+|[\d]+', r'', text_tmp).strip()
@@ -180,6 +184,8 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
     '''
     res = []
     for i, post in enumerate(posts):
+        # if i == 31:
+        #     pass
         # Анализируем длинну текст
         if len(posts[i].text) < params.min_text_len:
             continue

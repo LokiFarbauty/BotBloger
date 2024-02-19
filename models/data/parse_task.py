@@ -45,17 +45,8 @@ class ParseTask(Model):
     cr_dt = DateTimeField() # дата создания задачи
     active = IntegerField()  # флаг автостарта (используется для автозапуска)
     post_num = IntegerField() # количество постов, которое необходимо собрать (для ВК)
-    # post_start_date = DateTimeField(null=True) # собирать посты от этой даты
-    # post_end_date = DateTimeField(null=True) # собирать посты до этой даты
-    #key_words = TextField(null=True) # собирать посты в которые входят данные слова
-    #forbidden_words = TextField(null=True) # запрещенные слова с которыми пост пропускаем
-    #clear_words = TextField(null=True) # слова, которые при парсинге нужно вырезать
-    #hashtags = TextField(null=True) # собирать посты помеченные данными хэштегами
     period = IntegerField() # периодичность запуска задачи, 0 - единичное выполнение
-    #task_start_time = DateTimeField() # дата и время запуска задачи на выполнение
-    #task_interval = IntegerField() # периодичность запуска задачи
-    #post_max_text_length = IntegerField(null=True) # максимальная длинна поста
-    #post_min_text_length = IntegerField(null=True)  # максимальная длинна поста
+    moderated = IntegerField(default=0)  # флаг модерируемости, если 1 - то спасеные почты будут помечаться как ожидающие модерации
     state = IntegerField()  # Результат последнего запуска задачи
     error = TextField(null=True)  # Последняя ошибка задачи
     avg_post_rate = FloatField(default=0)  # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо

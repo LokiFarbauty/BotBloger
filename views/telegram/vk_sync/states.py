@@ -1,6 +1,7 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
+
 class SG_VKSync(StatesGroup):
     start = State()
     contacts = State()

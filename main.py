@@ -63,10 +63,6 @@ async def amain():
     tasks = []
     tasks.append(task_void())
     #
-    # Создаем задачу терминала
-    # tasks.append(terminal.console({}))
-    con_task = asyncio.create_task(terminal.console({}), name='Terminal')
-    #
     #t_task = asyncio.create_task(test_task(), name='Test')
     # Запускаем ботов
     await start_bots()
@@ -76,6 +72,9 @@ async def amain():
     await publicators_unit.init_current_publicators()
     # Запускаем бесконечные задачи
     await asyncio.gather(*tasks)
+    # Создаем задачу терминала
+    # tasks.append(terminal.console({}))
+    con_task = asyncio.create_task(terminal.console({}), name='Terminal')
 
 if __name__ == '__main__':
     try:

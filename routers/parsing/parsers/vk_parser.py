@@ -108,8 +108,10 @@ class Parser(ParserInterface):
                 }
                 proxy_str = f'{params.proxy_protocol}: params.proxy_url'
             url = f"https://api.vk.com/method/wall.get?owner_id={target_id}&offset={params.offset}&count={params.post_count}&filter={params.filter}&access_token={params.token}&v=5.199"
-            ua = UserAgent()
-            header = {'User-Agent': str(ua.random)}
+            #ua = UserAgent()
+            #header = {'User-Agent': str(ua.random)}
+            ua = 'KateMobileAndroid/56 lite-460 (Android 4.4.2; SDK 19; x86; unknown Android SDK built for x86; en)'
+            header = {'User-Agent': str(ua)}
             if session == None:
                 conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
                 async with aiohttp.ClientSession(connector=conn) as new_session:
@@ -142,6 +144,21 @@ class Parser(ParserInterface):
                 f'Парсер VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга: {ex}')
             return ParserInterfaceReturns.PyError
 
+    @classmethod
+    async def get_audio_url(cls, token, owner_id, audio_id) -> str:
+        url = ''
+        url = f"https://api.vk.com/method/audio.getById?audios={owner_id}_{audio_id}&access_token={token}&v=5.199"
+        ua = 'KateMobileAndroid/56 lite-460 (Android 4.4.2; SDK 19; x86; unknown Android SDK built for x86; en)'
+        header = {'User-Agent': str(ua)}
+        conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
+        async with aiohttp.ClientSession(connector=conn) as new_session:
+            req = await new_session.get(url, headers=header, ssl=False)
+            if req.status != 200:
+                return ''
+            else:
+                res = await req.json()
+            url=res['url']
+        return url
 
     @classmethod
     async def normalize_data(cls, json_data, params: ParseParams) -> Union[list[APost], ParserInterfaceReturns]:
@@ -294,6 +311,9 @@ class Parser(ParserInterface):
                                                 pass
                                         case 'audio':
                                             audio_url = src['audio']['url']
+                                            # owner_id = src['audio']['owner_id']
+                                            # audio_id = src['audio']['id']
+                                            # audio_url=await cls.get_audio_url(params.token, owner_id, audio_id)
                                             audio_title = await cls.__del_forbiden_tg_char(src['audio']['title'])
                                             audio_artist = await cls.__del_forbiden_tg_char(src['audio']['artist'])
                                             audio_title = await cls.__clear_file_name(audio_title)

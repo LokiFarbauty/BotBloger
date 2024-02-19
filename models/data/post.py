@@ -1,8 +1,17 @@
 from peewee import *
+import enum
 #
 from models.dm_config import db
 from models.data.parse_task import ParseTask
 from models.data.parse_program import ParseProgram
+
+class ModerateStates(enum.Enum):
+    NotModerate = 0  # не модерируется и не публиковался
+    NotVerified = 1  # ожидает верификации
+    ToPublish = 2  # ждет публикации
+    Published = 3 # опубликован
+    InArchive = 4 # отправлен в архив
+    ToDelete = 5  # На удаление
 
 
 class Post(Model):
@@ -19,9 +28,8 @@ class Post(Model):
     text_len = IntegerField(index=True)
     parse_task = ForeignKeyField(ParseTask, backref='posts', null=True)
     parse_program = ForeignKeyField(ParseProgram, backref='posts', null=True)
-    published = BooleanField() # опубликован или нет пост
     last_published_dt = DateTimeField(index=True) # дата публикации поста
-    checked = BooleanField() #проверен или нет пост админом
+    moderate = IntegerField(default=0) # флаг премодерации
 
     class Meta:
         database = db

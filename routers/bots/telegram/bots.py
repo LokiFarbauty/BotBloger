@@ -153,6 +153,7 @@ async def init_bots():
             print(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
             app_loger.error(f'Создать объект бота {mbot.name} нее удалось. Ошибка: {ex}')
             continue
+    print(f'Загружено {len(bots)} ботов.')
     app_loger.info(f'Загружено {len(bots)} ботов.')
     #print(f'Запущено {len(bots)} ботов.')
     return bots

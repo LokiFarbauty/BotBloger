@@ -6,10 +6,10 @@ from models.data.user import User
 class ParseProgram(Model):
     # Программа состоит из нескольких задач
     name = TextField() # имя
-    cr_dt = DateTimeField() # дата создания
-    img = CharField() # указатель на изображение
-    user = ForeignKeyField(User, backref='parse_programs', index=True)
-    description = TextField() # описание
+    cr_dt = DateTimeField(default=0) # дата создания
+    img = CharField(null=True) # указатель на изображение
+    #user = ForeignKeyField(User, backref='parse_programs', index=True)
+    description = TextField(default='') # описание
 
     class Meta:
         database = db

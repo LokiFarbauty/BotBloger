@@ -42,8 +42,8 @@ async def save_posts(posts: list[APost], target_id: int, task: ParseTask, progra
             post_index_id = post_index.get_id()
             post_obj = Post.create(post_id=post.post_id, source_id=target_id, text=post_index_id, views=0,
                                    old_views=post.views, likes=post.likes, dt=post.dt,
-                                   telegraph_url=tg_url, text_hash=post.text_hash, parse_task=task, parse_program=program,
-                                   published=0, last_published_dt=0, text_len=len(post.text), checked=0, rate=post.rate)
+                                   telegraph_url=tg_url, text_hash=post.text_hash, parse_task=task, parse_program=task.program,
+                                   moderate=task.moderated, last_published_dt=0, text_len=len(post.text), rate=post.rate)
             post_obj.save()
             # Сохраняем хэштеги
             for hashtag in post.hashtags:

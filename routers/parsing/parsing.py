@@ -77,7 +77,7 @@ async def parsing(**_kwargs):
         parser = _kwargs['parser']
         # Ждем немного
         delay = random.randrange(start=120, stop=3600)
-        delay=1
+        #delay=1
         if debug: parsers_loger.info(f'Выполнение задачи <{par_task.name}> начнётся через {delay/60} мин.')
         if not quick_start: await asyncio.sleep(delay)
         #
@@ -149,14 +149,23 @@ async def parsing(**_kwargs):
             #for posts_got in rng:
             posts_got = 0
             got_post_num = 0
+            if debug: parsers_loger.info(f'Начато выполнение задачи <{task.name}>.')
             while posts_got<source_post_count:
+                #
+                # if posts_got>5150:
+                #     pass
+                #
                 if end_parse:
+                    # Обновляем рейтинги
+                    await refresh_avg_rating(task)
                     # Если установлен флаг прекращения парсинга останавливаемся
                     #print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
                     if debug: parsers_loger.info(f'Выполнение задачи <{task.name}> прекращено командой <break>. Загружено {got_post_num} постов.')
                     break
-                if debug: parsers_loger.info(f'Начато выполнение задачи <{task.name}>.')
                 # Парсим
+                if debug:
+                    parsers_loger.info(f'Новый цикл парсинга <{task.name}>. Постов скачано: {posts_got} из {source_post_count}')
+                    print(f'Новый цикл парсинга <{task.name}>. Постов скачано: {posts_got} из {source_post_count}')
                 params.offset = posts_got
                 conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
                 async with aiohttp.ClientSession(connector=conn) as new_session:
@@ -251,8 +260,6 @@ async def parsing(**_kwargs):
                 # Сохраняем состояние
                 await task.refresh_task_state(ParseTaskStates.Ended.value)
                 break
-            # Обновляем рейтинги
-            await refresh_avg_rating(task)
             # Обновляем данные задачи
             task = ParseTask.get_by_id(task.get_id())
             # Сохраняем состояние
