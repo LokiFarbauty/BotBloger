@@ -95,9 +95,10 @@ def create_admin():
                                 description='', token=adm_vk_token, public=0, cr_dt=0)
         parser.save()
 
-def delete_post(post_key: int):
+def delete_post(post_key: int = 0, post: Post = None):
     try:
-        post = Post.get_by_id(post_key)
+        if post == None:
+            post = Post.get_by_id(post_key)
         # Удаляем картинки
         photos = Photo.delete().where(Photo.owner == post)
         photos.execute()

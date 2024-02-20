@@ -10,7 +10,7 @@ from peewee import fn
 # models
 from models.data.publicator import Publicator, PublicatorStates, PublicatorModes
 from models.data.channel import Channel
-from models.data.post import Post
+from models.data.post import Post, ModerateStates
 from models.data.hashtag import Hashtag
 from models.data.post_hashtag import Post_Hashtag
 from models.data.video import Video
@@ -424,12 +424,12 @@ async def get_hashtags_posts(hts: str, old_posts=None):
     except Exception as ex:
         return []
 
-async def get_posts(condition, old_posts=None):
+async def get_posts(condition, old_posts=None, order=Post.post_id.asc()):
     try:
         if old_posts is None or type(old_posts) is list:
-            posts = Post.select().where(condition).order_by(Post.post_id.asc())
+            posts = Post.select().where(condition).order_by(order)
         else:
-            posts = old_posts.select().where(condition).order_by(Post.post_id.asc())
+            posts = old_posts.select().where(condition).order_by(order)
     except:
         posts = []
     return posts
@@ -531,7 +531,15 @@ async def publicating(par_publicator: Publicator, debug=False):
                         condition = ((sub_condition) & (Post.parse_program == parse_task_key))
                     posts = await get_random_posts(condition, posts)
                 elif publicator.mode == PublicatorModes.Marketing.value:
-                        pass
+                    pass
+                elif publicator.mode == PublicatorModes.Premoderate.value:
+                    if parse_program_key == 0 or parse_program_key == None:
+                        condition = ((sub_condition) & (Post.moderate == ModerateStates.ToPublish.value) & (
+                                    Post.parse_task == parse_task_key))
+                    else:
+                        condition = ((sub_condition) & (Post.moderate == ModerateStates.ToPublish.value) & (
+                                    Post.parse_program == parse_task_key))
+                    posts = await get_posts(condition, posts, order=Post.dt.asc())
                 # Размещаем посты
                 if debug: publicators_loger.info(
                     f'Публикатор {publicator.name}. Условие выборки поста сформировано. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
@@ -565,13 +573,16 @@ async def publicating(par_publicator: Publicator, debug=False):
                             if debug: publicators_loger.info(
                                 f'Публикатор {publicator.name}. Пост {post.get_id()} - критическая ошибка бота, публикатор остановлен. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                             return
-                        if publicator.mode == PublicatorModes.New.value:
+                        if (publicator.mode == PublicatorModes.New.value) or (publicator.mode == PublicatorModes.Premoderate.value):
                             publicator.last_post_id = post.post_id
                             publicator.save()
                             if debug: publicators_loger.info(
-                                f'Публикатор {publicator.name}. Режим публикатора "Новые". Сохраняем последний id поста. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
+                                f'Публикатор {publicator.name}. Режим публикатора "Новые" или "Премодерация". Сохраняем последний id поста. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                             if publicator.delete_public_post == 1:
                                 delete_post(post.get_id())
+                            else:
+                                post.moderate = ModerateStates.Published.value
+                                post.save()
                         else:
                             # Если не новые то прекращаем размещения до следующего периода
                             if debug: publicators_loger.info(

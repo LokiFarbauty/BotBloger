@@ -19,7 +19,17 @@ from routers.bots.telegram.bots import init_bots, BotStatus
 
 # models
 from models.data.bot import Bot as BotModel
-
+from models.data.post import Post, ModerateStates
+from models.data.post_text_FTS import PostText
+from models.data.photo import Photo
+from models.data.audio import Audio
+from models.data.audio_upload import AudioUpload
+from models.data.video import Video
+from models.data.docs import Doc
+from models.data.poll import Poll
+from models.data.link import Link
+from models.data.post_hashtag import Post_Hashtag
+from models.data_model import delete_post
 #
 # dialogs
 #from views.telegram.dialogs.dlg_start import dialog_start_menu
@@ -58,10 +68,27 @@ async def test_task():
         print(i)
         await asyncio.sleep(1)
 
+async def service_task():
+    # Задача сервиса
+    # Удаляет посты помеченные к удалению
+    while True:
+        await asyncio.sleep(100000)
+        try:
+            num = 0
+            posts_to_del = Post.select().where(Post.moderate == ModerateStates.ToDelete.value)
+            for post in posts_to_del:
+                num += 1
+                delete_post(post=post)
+        except Exception as ex:
+            pass
+        await asyncio.sleep(100000)
+
+
 async def amain():
     #
     tasks = []
     tasks.append(task_void())
+    tasks.append(service_task())
     #
     #t_task = asyncio.create_task(test_task(), name='Test')
     # Запускаем ботов
