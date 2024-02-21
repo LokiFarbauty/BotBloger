@@ -97,11 +97,12 @@ async def amain():
     await parsers_dispatcher.init_tasks()
     # Запускаем публикаторы
     await publicators_unit.init_current_publicators()
-    # Запускаем бесконечные задачи
-    await asyncio.gather(*tasks)
     # Создаем задачу терминала
     # tasks.append(terminal.console({}))
     con_task = asyncio.create_task(terminal.console({}), name='Terminal')
+    # Запускаем бесконечные задачи
+    await asyncio.gather(*tasks)
+
 
 if __name__ == '__main__':
     try:

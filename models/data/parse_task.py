@@ -24,6 +24,7 @@ class ParseModes(enum.Enum):
     Period = 2 # публиковать периодически случайный пост
     Marketing = 3 # режим рекламная компания публиковать самые рейтинговые из диапазона
     New = 4 # публиковать новые
+    Premoderate = 5  # публиковать отмеченные в премодерации посты начиная с самой поздней даты, после публикации помечаем пост к удалению либо в архив
 
 class ParseTask(Model):
     name = TextField() # имя задачи
@@ -44,14 +45,17 @@ class ParseTask(Model):
     options = TextField(null=True) # произвольные опции
     cr_dt = DateTimeField() # дата создания задачи
     active = IntegerField()  # флаг автостарта (используется для автозапуска)
+    start_parse_hour = IntegerField(default=0)  # время начала парсинга
+    end_parse_hour = IntegerField(default=6)  # время окончания парсинга
     post_num = IntegerField() # количество постов, которое необходимо собрать (для ВК)
-    period = IntegerField() # периодичность запуска задачи, 0 - единичное выполнение
-    moderated = IntegerField(default=0)  # флаг модерируемости, если 1 - то спасеные почты будут помечаться как ожидающие модерации
-    state = IntegerField()  # Результат последнего запуска задачи
-    error = TextField(null=True)  # Последняя ошибка задачи
-    avg_post_rate = FloatField(default=0)  # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
+    period = IntegerField(default=0) # периодичность запуска задачи, 0 - единичное выполнение
+    moderated = IntegerField(default=0) # флаг модерируемости, если 1 - то спасеные почты будут помечаться как ожидающие модерации
+    max_not_moderated_posts = IntegerField(default=0) # Максимум нерассмотренных постов для премодерируемых задач
+    state = IntegerField() # Результат последнего запуска задачи
+    error = TextField(null=True) # Последняя ошибка задачи
+    avg_post_rate = FloatField(default=0) # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
     max_post_rate = FloatField(default=0) # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
-    min_post_rate = FloatField(default=0)  # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
+    min_post_rate = FloatField(default=0) # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
 
 
 

@@ -13,6 +13,9 @@ from models.data.audio import Audio
 from models.data.poll import Poll
 from models.data.link import Link
 from models.data.docs import Doc
+from models.data_model import delete_post
+#
+from routers.logers import bots_loger
 #
 from datetime import datetime
 from dataclasses import dataclass
@@ -63,9 +66,9 @@ async def get_post_desc(post: Post, post_text: str, offset: int, user: User, pos
     task_name = post.parse_task.name
     if debug:
         post_id = post.get_id()
-        post_desc = f'Программа: <b>"{program_name}"</b>. Источник: <b>"{task_name}"</b>. id: <b>{post_id}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. {offset+1} из <b>{posts_count}</b>.\n'
+        post_desc = f'Программа: <b>"{program_name}"</b>. Источник: <b>"{task_name}"</b>. id: <b>{post_id}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. Рейтинг: <b>{post.likes*100//post.old_views}%</b>. {offset+1} из <b>{posts_count}</b>.\n'
     else:
-        post_desc = f'Программа: <b>{program_name}</b>. Источник: <b>{task_name}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. {offset+1} из <b>{posts_count}</b>.\n'
+        post_desc = f'Программа: <b>{program_name}</b>. Источник: <b>{task_name}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. Рейтинг: <b>{post.likes*100//post.old_views}%</b>. {offset+1} из <b>{posts_count}</b>.\n'
     post_exist = True
     res = PostDesc(POST_TEXT=post_text, POST_DESC=post_desc, POST_EXIST=post_exist)
     return res
@@ -152,6 +155,35 @@ PUBLIC_POST_BUTTON = Button(
     Const('📇'),
     on_click=event_public_post,
     id="btn_public_post"
+)
+
+async def event_reset_posts(callback: CallbackQuery, button: Button,
+                    dialog_manager: DialogManager):
+    try:
+        post = dialog_manager.dialog_data['post']
+        task = post.parse_task
+        task_posts = Post.select().where((Post.parse_task == task) & (Post.moderate == ModerateStates.NotVerified.value))
+        for task_post in task_posts:
+            delete_post(post=task_post)
+        dt = datetime.now()
+        cr_dt = dt.replace(microsecond=0).timestamp()
+        # Устанавливаем дату начала парсинга постов текущей
+        criterion = task.criterion
+        criterion.post_start_date = int(cr_dt)
+        criterion.save()
+        task.save()
+    except Exception as ex:
+        try:
+            await callback.bot.send_message(callback.from_user.id,'При удалении постов произошла ошибка. Пожалуйста сообщите администратору.')
+            bots_loger.error(f'event_reset_posts (user_id: {callback.from_user.id}, task_id: {task.get_id()}): {ex}')
+        except:
+            pass
+    pass
+
+RESET_POSTS_BUTTON = Button(
+    Const('🗑 Удалить все посты источника'),
+    on_click=event_reset_posts,
+    id="btn_reset_posts"
 )
 
 async def show_main_menu(callback: CallbackQuery = None, dialog_manager: DialogManager = None):

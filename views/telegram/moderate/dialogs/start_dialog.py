@@ -7,7 +7,7 @@ from aiogram_dialog import (
 )
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import SwitchTo, Start, Next, ScrollingGroup, Button, Select, Url, Cancel, Row, NumberedPager
+from aiogram_dialog.widgets.kbd import SwitchTo, Start, Next, ScrollingGroup, Button, Select, Url, Cancel, Row, NumberedPager, Back
 from aiogram_dialog.widgets.media import StaticMedia
 from aiogram_dialog.widgets.text import Const, Format, Multi, ScrollingText
 # routers
@@ -123,14 +123,23 @@ async def getter_start(**_kwargs):
         "is_registered": is_registered,
     }
 
-# async def getter_for_viewing(**_kwargs):
-#     dm = _kwargs['dialog_manager']
-#     event_from_user = _kwargs['event_from_user']
-#     user_id = event_from_user.id
-#     greeting = lexicon.GREETINGS['contact']
-#     return {
-#         "greeting": greeting,
-#     }
+async def getter_reference(**_kwargs):
+    dm = _kwargs['dialog_manager']
+    event_from_user = _kwargs['event_from_user']
+    user_id = event_from_user.id
+    greeting = lexicon.GREETINGS['reference']
+    return {
+        "greeting": greeting,
+    }
+
+async def getter_post_utilities(**_kwargs):
+    dm = _kwargs['dialog_manager']
+    event_from_user = _kwargs['event_from_user']
+    user_id = event_from_user.id
+    greeting = lexicon.GREETINGS['utilities']
+    return {
+        "greeting": greeting,
+    }
 
 async def getter_show_post_for_view(**_kwargs):
     # Получаем модель
@@ -222,14 +231,19 @@ async def on_product_changed(callback: ChatEvent, select: Any, manager: DialogMa
     manager.dialog_data["program_index"] = int(item_id) - 1
     await manager.next()
 
+async def reset_program_index(callback: CallbackQuery, button: Button,
+                    dialog_manager: DialogManager):
+    dialog_manager.dialog_data["program_index"] = -1
+
 dialog_interface = (
     Window(
         Format('{greeting}'),
-        SwitchTo(Const(lexicon.BUTTONS['for_viewing']), id="btn_for_viewing", state=states.SG_Main.for_viewing, when=F["is_registered"]),
+        SwitchTo(Const(lexicon.BUTTONS['for_viewing']), id="btn_for_viewing", state=states.SG_Main.for_viewing, on_click=reset_program_index, when=F["is_registered"]),
         SwitchTo(Const(lexicon.BUTTONS['programm']), id="btn_programm", state=states.SG_Main.programm, when=F["is_registered"]),
         SwitchTo(Const(lexicon.BUTTONS['scheme']), id="btn_scheme", state=states.SG_Main.scheme, when=F["is_registered"]),
-        #Start(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=states.SG_enter_token_menu.make_vk_sync, on_click=event_make_vk_sync, when=F["is_not_registered"]),
-        #Button(Const(lexicon.BUTTONS['add_sync']), id="btn_add_sync", on_click=event_make_vk_sync, when=F["is_registered"]),
+        SwitchTo(Const(lexicon.BUTTONS['reference']), id="btn_reference", state=states.SG_Main.reference, when=F["is_registered"]),
+        # Start(Const(lexicon.BUTTONS['reg']), id="btn_reg", state=states.SG_enter_token_menu.make_vk_sync, on_click=event_make_vk_sync, when=F["is_not_registered"]),
+        # Button(Const(lexicon.BUTTONS['add_sync']), id="btn_add_sync", on_click=event_make_vk_sync, when=F["is_registered"]),
         # Start(Const(lexicon.BUTTONS['add_sub']), id="btn_add_sub", state=states.SG_enter_token_menu.make_vk_sync,
         #       on_click=event_make_vk_sync, when=F["is_registered"]),
         getter=getter_start,
@@ -284,6 +298,7 @@ dialog_interface = (
             common_dlg_elements.DEL_POST_BUTTON,
             #common_dlg_elements.SHOW_SAME_POST,
             common_dlg_elements.SKIP_POST_BUTTON,
+            SwitchTo(Const('⚙️'), id="btn_post_utilities", state=states.SG_Main.post_utilities),
             common_dlg_elements.PUBLIC_POST_BUTTON,
             common_dlg_elements.NEXT_CASE_BUTTON,
             when=F["post_exist"]
@@ -295,9 +310,22 @@ dialog_interface = (
     ),
     Window(
         Format('{greeting}'),
+        common_dlg_elements.RESET_POSTS_BUTTON,
+        Back(Const(lexicon.BUTTONS['назад']), id="btn_back_ex"),
+        getter=getter_post_utilities,
+        state=states.SG_Main.post_utilities,
+    ),
+    Window(
+        Format('{greeting}'),
         SwitchTo(Const(lexicon.BUTTONS['назад']), id="btn_back", state=states.SG_Main.start),
         getter=getter_scheme,
         state=states.SG_Main.scheme,
+    ),
+    Window(
+        Format('{greeting}'),
+        SwitchTo(Const(lexicon.BUTTONS['назад']), id="btn_back", state=states.SG_Main.start),
+        getter=getter_reference,
+        state=states.SG_Main.reference,
     ),
     )
 

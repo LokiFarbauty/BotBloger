@@ -27,14 +27,14 @@ class PublicatorStates(enum.Enum):
 class Publicator(Model):
     # Программа состоит из нескольких задач
     name = TextField() # имя
-    img = CharField() # указатель на изображение
+    img = CharField(null=True) # указатель на изображение
     channel = ForeignKeyField(Channel, backref='publicators', index=True)
     user = ForeignKeyField(User, backref='publicators', index=True)
     cr_dt = DateTimeField() # дата создания
     parse_program = ForeignKeyField(ParseProgram, backref='publicators', index=True, null=True)
     parse_task = ForeignKeyField(ParseTask, backref='publicators', index=True, null=True)
     criterion = ForeignKeyField(Criterion, backref='tasks')  # ссылка на критерии выборки
-    mode = IntegerField() # Режим публикации
+    mode = IntegerField(default=0) # Режим публикации
     autostart = IntegerField(default=0) # Автозапуск 1 - да 0 нет
     period = IntegerField(default=0) # Период публикации
     delay = IntegerField(default=60) # Задержка публикации перед стартом публикатора
@@ -47,7 +47,7 @@ class Publicator(Model):
     author_caption = TextField(default="") # авторская подпись (выкладывается в конце поста)
     author_name = CharField(default="") # имя автора (для страничек Телеграф)
     author_url = CharField(default="")  # ссылка на автора (для страничек Телеграф)
-    premoderate = IntegerField(default=0)  # флаг премодерации, если установлен пост отправить на премодерацию админу
+    #premoderate = IntegerField(default=0)  # флаг премодерации, если установлен пост отправить на премодерацию админу
     state = IntegerField() # Состояние публикатора
     error = TextField(null=True) # Последняя ошибка публикатора (Причина остановки его работы)
     last_post_id = IntegerField(default=0) # vk_id последнего опубликованного поста

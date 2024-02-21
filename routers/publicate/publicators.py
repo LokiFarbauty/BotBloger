@@ -373,13 +373,14 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         if len(audio_urls) > 10:
             audio_urls = audio_urls[:9]
         if len(audio_urls) == 1:
-            await bot_obj.send_audio(chat_id=channel_tg_id, audio=audio_urls[0], performer=audio_artists[0],
-                                     title=audio_titles[0], parse_mode='HTML')
+            #await bot_obj.send_audio(chat_id=channel_tg_id, audio=audio_urls[0], performer=audio_artists[0], title=audio_titles[0])
+            sf = types.URLInputFile(url=audio_urls[0], filename=f'{audio_artists[0]} - {audio_titles[0]}.mp3')
+            await bot_obj.send_document(chat_id=channel_tg_id, document=sf)
         elif len(audio_urls) > 1:
             media = []
             for i, el in enumerate(audio_urls, 0):
                 media.append(types.InputMediaAudio(media=el, performer=audio_artists[i], title=audio_titles[i]))
-            await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка документов
+            await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка audio
         # Получаем и выкладываем опросы
         state = 'Размещение опроса'
         poll_mlds = Poll.select().where(Poll.owner == post)
@@ -480,7 +481,10 @@ async def publicating(par_publicator: Publicator, debug=False):
                     parse_program_key = publicator.parse_program.get_id()
                 except:
                     parse_program_key = 0
-                parse_task_key = publicator.parse_task.get_id()
+                try:
+                    parse_task_key = publicator.parse_task.get_id()
+                except:
+                    parse_task_key = 0
                 last_post_id = publicator.last_post_id
                 # Определяем критериии для публикации -
                 #  хэштег (остальное не поддерживается), ключевое слово или фраза, проверка на запрещенные слова (100 попыток), очистка слов в тексте,
@@ -515,20 +519,20 @@ async def publicating(par_publicator: Publicator, debug=False):
                     if parse_program_key==0 or parse_program_key==None:
                         condition = ((sub_condition) & (Post.post_id > last_post_id) & (Post.parse_task == parse_task_key))
                     else:
-                        condition = ((sub_condition) & (Post.post_id > last_post_id) & (Post.parse_program == parse_task_key))
+                        condition = ((sub_condition) & (Post.post_id > last_post_id) & (Post.parse_program == parse_program_key))
                     posts = await get_posts(condition, posts)
                 elif publicator.mode == PublicatorModes.Single.value:
                     if parse_program_key==0 or parse_program_key==None:
                         condition = ((sub_condition) & (Post.parse_task == parse_task_key))
                     else:
-                        condition = ((sub_condition) & (Post.parse_program == parse_task_key))
+                        condition = ((sub_condition) & (Post.parse_program == parse_program_key))
                     posts = await get_random_posts(condition, posts)
                     period = 0
                 elif publicator.mode == PublicatorModes.Period.value:
                     if parse_program_key==0 or parse_program_key==None:
                         condition = ((sub_condition) & (Post.parse_task == parse_task_key))
                     else:
-                        condition = ((sub_condition) & (Post.parse_program == parse_task_key))
+                        condition = ((sub_condition) & (Post.parse_program == parse_program_key))
                     posts = await get_random_posts(condition, posts)
                 elif publicator.mode == PublicatorModes.Marketing.value:
                     pass
@@ -538,7 +542,7 @@ async def publicating(par_publicator: Publicator, debug=False):
                                     Post.parse_task == parse_task_key))
                     else:
                         condition = ((sub_condition) & (Post.moderate == ModerateStates.ToPublish.value) & (
-                                    Post.parse_program == parse_task_key))
+                                    Post.parse_program == parse_program_key))
                     posts = await get_posts(condition, posts, order=Post.dt.asc())
                 # Размещаем посты
                 if debug: publicators_loger.info(
@@ -573,6 +577,11 @@ async def publicating(par_publicator: Publicator, debug=False):
                             if debug: publicators_loger.info(
                                 f'Публикатор {publicator.name}. Пост {post.get_id()} - критическая ошибка бота, публикатор остановлен. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                             return
+                        # Сохраняем дату публикации
+                        dt = datetime.now()
+                        cr_dt = dt.replace(microsecond=0).timestamp()
+                        post.last_published_dt = int(cr_dt)
+                        post.save()
                         if (publicator.mode == PublicatorModes.New.value) or (publicator.mode == PublicatorModes.Premoderate.value):
                             publicator.last_post_id = post.post_id
                             publicator.save()

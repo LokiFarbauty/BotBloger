@@ -10,6 +10,7 @@ from routers.parsing.rating import refresh_avg_rating
 # models
 from models.data.parse_task import ParseTask, ParseTaskStates, ParseTaskActive
 from models.saver import save_posts
+from models.data.post import Post, ModerateStates
 
 # py
 import asyncio
@@ -17,6 +18,7 @@ import aiohttp
 from tqdm import tqdm
 import enum
 import random
+from datetime import datetime
 
 # const
 INFINITE = 'all'
@@ -76,7 +78,11 @@ async def parsing(**_kwargs):
         infinite_def = _kwargs['infinite_def']
         parser = _kwargs['parser']
         # Ждем немного
-        delay = random.randrange(start=120, stop=3600)
+        if par_task.moderated == 0:
+            delay = random.randrange(start=120, stop=3600)
+        else:
+            #delay = 1
+            delay = random.randrange(start=30, stop=360)
         #delay=1
         if debug: parsers_loger.info(f'Выполнение задачи <{par_task.name}> начнётся через {delay/60} мин.')
         if not quick_start: await asyncio.sleep(delay)
@@ -98,7 +104,22 @@ async def parsing(**_kwargs):
             # Проверяем что задача еще существует
             task = ParseTask.get_task(key=par_task.get_id())
             if task == None:
+                parsers_loger.critical(f'Задача "{par_task.name}" не найдена. Процесс выполнения задачи прерван.')
                 return
+            # Проверяем время
+            cur_time = datetime.now().time().hour
+            if cur_time < task.start_parse_hour or cur_time > task.end_parse_hour:
+                # Ждем 20 минут
+                await asyncio.sleep(1200)
+                continue
+            # Проверяем не превышен ли лимит постов на премодерации
+            period = task.period
+            if task.moderated == 1:
+                not_processed_posts = Post.select().where((Post.parse_task == task) & (Post.moderate == ModerateStates.NotVerified.value)).count()
+                if not_processed_posts >= task.max_not_moderated_posts:
+                    await asyncio.sleep(period)
+                    continue
+            #
             token = task.parser.token
             post_num = PARSE_VK_POST_NUM
             if task.post_num != infinite_def:
@@ -107,7 +128,6 @@ async def parsing(**_kwargs):
             params = ParseParams(target_id=task.target_id, target_type=task.target_type, token=token,
                                  post_count=post_num,
                                  filter=task.filter, use_free_proxy=False)
-            period = task.period
             # Определяем счетчики
             task_post_num = task.post_num
             if task_post_num == 'all':
@@ -150,7 +170,7 @@ async def parsing(**_kwargs):
             posts_got = 0
             got_post_num = 0
             if debug: parsers_loger.info(f'Начато выполнение задачи <{task.name}>.')
-            while posts_got<source_post_count:
+            while posts_got < source_post_count:
                 #
                 # if posts_got>5150:
                 #     pass

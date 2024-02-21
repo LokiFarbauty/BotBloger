@@ -6,7 +6,9 @@ class SG_Main(StatesGroup):
     programm = State()
     for_viewing = State()
     scheme = State()
+    reference = State()
     ads = State()
+    post_utilities = State()
 
 # class SG_enter_token_menu(StatesGroup):
 #     make_vk_sync = State()
