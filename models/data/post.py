@@ -13,6 +13,17 @@ class ModerateStates(enum.Enum):
     InArchive = 4 # отправлен в архив
     ToDelete = 5  # На удаление
 
+class LanguageStates(enum.Enum):
+    RUS = 0 #
+    ENG = 1 #
+    CHN = 2
+    ISP = 3
+    IND = 4
+    PTG = 5
+    GER = 6
+    FRA = 7
+    UKR = 8
+    KOR = 9
 
 class Post(Model):
     post_id = IntegerField()
@@ -30,6 +41,7 @@ class Post(Model):
     parse_program = ForeignKeyField(ParseProgram, backref='posts', null=True)
     last_published_dt = DateTimeField(index=True) # дата публикации поста
     moderate = IntegerField(default=0) # флаг премодерации
+    translation = IntegerField(default=0) # Указание следует ли переводить пост на другой язык
 
     class Meta:
         database = db

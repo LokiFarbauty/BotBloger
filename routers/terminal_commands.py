@@ -18,6 +18,7 @@ from routers.publicate.publicators import (public_post_to_channel, get_publicato
 from routers.parsing.rating import refresh_posts_rating
 import yt_dlp
 from main_config import MAIN_PATH
+import translators as ts
 
 commands = []
 
@@ -221,4 +222,16 @@ async def download_video(video_url: str):
 
 commands.append(
      Command(name='download_video', func=download_video, args_num=1, help='Скачать видео по ссылке. Параметры: 1 - url (ссылка на видео)')
+)
+
+async def translate_text(text: str, lang: str = 'en'):
+    try:
+        tr_text = ts.translate_text(text)
+        #tr_text = ts.get_languages()
+        return tr_text
+    except Exception as ex:
+        return f'Error: {ex}'
+
+commands.append(
+     Command(name='translate_text', func=translate_text, args_num=1, help='Перевести текст. Параметры: 1 - текст, 2 - язык (необязательно)')
 )
