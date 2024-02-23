@@ -16,6 +16,8 @@ from routers.publicate.telegraph_tools import put_post_to_telegraph
 from routers.publicate.publicators import (public_post_to_channel, get_publicator_process_state,
                                            stop_publicator_process, start_publicator_process)
 from routers.parsing.rating import refresh_posts_rating
+import yt_dlp
+from main_config import MAIN_PATH
 
 commands = []
 
@@ -204,4 +206,19 @@ async def calc_rate(parse_task_id: int):
 
 commands.append(
      Command(name='calc_rate', func=calc_rate, args_num=1, help='Рассчитать рейтинг постов для задачи. Параметры: 1 - parse_task_id (id задачи)')
+)
+
+async def download_video(video_url: str):
+    try:
+        output_directory = f'{MAIN_PATH}/downloads'
+        ydl_opts = {'outtmpl': f'{output_directory}/%(title)s.%(ext)s'}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([video_url])
+            info = ydl.extract_info(video_url, download=True)
+        return f"Видео успешно скачано\n «{info['title']}»"
+    except Exception as ex:
+        return f'Error: {ex}'
+
+commands.append(
+     Command(name='download_video', func=download_video, args_num=1, help='Скачать видео по ссылке. Параметры: 1 - url (ссылка на видео)')
 )

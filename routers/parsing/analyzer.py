@@ -173,6 +173,8 @@ def del_vk_url(text: str) -> str:
             # Удаляем цифры из ссылки
             text_tmp_prc = re.sub(r'[^\w\s]+|[\d]+', r'', text_tmp).strip()
             text_tmp_prc = text_tmp_prc.replace('id', '')
+            text_tmp_prc = text_tmp_prc.replace('club', '')
+            text_tmp_prc = text_tmp_prc.replace('event', '')
             text = text.replace(text_tmp, text_tmp_prc)
         except:
             break

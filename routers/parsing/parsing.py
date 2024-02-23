@@ -81,7 +81,7 @@ async def parsing(**_kwargs):
         if par_task.moderated == 0:
             delay = random.randrange(start=120, stop=3600)
         else:
-            #delay = 1
+            delay = 1
             delay = random.randrange(start=30, stop=360)
         #delay=1
         if debug: parsers_loger.info(f'Выполнение задачи <{par_task.name}> начнётся через {delay/60} мин.')

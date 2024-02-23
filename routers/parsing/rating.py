@@ -7,8 +7,12 @@ from routers.logers import parsers_loger
 async def refresh_avg_rating(parse_task: ParseTask):
     avg_views = Post.select(fn.AVG(Post.old_views)).where(Post.parse_task==parse_task).scalar()
     avg_likes = Post.select(fn.AVG(Post.likes)).where(Post.parse_task==parse_task).scalar()
-    avg_rate = avg_likes / avg_views
+    try:
+        avg_rate = avg_likes / avg_views
+    except:
+        avg_rate = 0
     parse_task.avg_post_rate = avg_rate
+    parse_task.save()
 
 async def get_avg_views(parse_task: ParseTask) -> int:
     try:

@@ -61,7 +61,7 @@ async def get_post_desc(post: Post, post_text: str, offset: int, user: User, pos
         post_text = f'{post_text}\n📁 {doc.url}'
     #
     dt = post.dt
-    dt = datetime.fromtimestamp(dt).strftime('%d.%m.%Y')
+    dt = datetime.fromtimestamp(dt).strftime('%d.%m.%Y %H:%M')
     program_name = post.parse_program.name
     task_name = post.parse_task.name
     if debug:
@@ -123,6 +123,12 @@ async def event_del_post(callback: CallbackQuery, button: Button,
     post = dialog_manager.dialog_data['post']
     post.moderate = ModerateStates.ToDelete.value
     post.save()
+    try:
+        data = dialog_manager.dialog_data
+        aiogd_context = data['aiogd_context']
+        aiogd_context.widget_data['text_scroll_post'] = 0
+    except:
+        pass
     pass
 
 DEL_POST_BUTTON = Button(
@@ -136,6 +142,12 @@ async def event_skip_post(callback: CallbackQuery, button: Button,
     post = dialog_manager.dialog_data['post']
     post.moderate = ModerateStates.InArchive.value
     post.save()
+    try:
+        data = dialog_manager.dialog_data
+        aiogd_context = data['aiogd_context']
+        aiogd_context.widget_data['text_scroll_post'] = 0
+    except:
+        pass
     pass
 
 SKIP_POST_BUTTON = Button(
@@ -149,6 +161,12 @@ async def event_public_post(callback: CallbackQuery, button: Button,
     post = dialog_manager.dialog_data['post']
     post.moderate = ModerateStates.ToPublish.value
     post.save()
+    try:
+        data = dialog_manager.dialog_data
+        aiogd_context = data['aiogd_context']
+        aiogd_context.widget_data['text_scroll_post'] = 0
+    except:
+        pass
     pass
 
 PUBLIC_POST_BUTTON = Button(

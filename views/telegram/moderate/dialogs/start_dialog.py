@@ -62,6 +62,9 @@ async def getter_scheme(**_kwargs):
             greeting = f'{greeting}  <b>"{parse_task.target_name}"</b>(VK) -> \n'
             target = ''
             # Получаем публикаторы
+            publicators = Publicator.select().where(Publicator.parse_program == user_program)
+            for publicator in publicators:
+                target = f'{target}    <b>"{publicator.channel.name}"</b>(TG)\n'
             publicators = Publicator.select().where(Publicator.parse_task == parse_task)
             for publicator in publicators:
                 target = f'{target}    <b>"{publicator.channel.name}"</b>(TG)\n'
@@ -158,15 +161,16 @@ async def getter_show_post_for_view(**_kwargs):
     except:
         program_index = -1
     user_programs = data['programs']
+    #tmp_msg = await bot.send_message(user_id, 'Получаю данные, подождите....')
     # Получаем количество постов
     if program_index >= 0:
         checked_program = user_programs[program_index]
         posts_count = Post.select().where((Post.parse_program == checked_program) & (Post.moderate == ModerateStates.NotVerified.value)).count()
-        posts = Post.select().where((Post.parse_program == checked_program) & (Post.moderate == ModerateStates.NotVerified.value))
+        posts = Post.select().where((Post.parse_program == checked_program) & (Post.moderate == ModerateStates.NotVerified.value)).order_by(Post.dt.asc())
     else:
         user_programs = User_ParseProgram.select(User_ParseProgram.program).where(User_ParseProgram.user == user_mld)
         posts_count = Post.select().where((Post.parse_program.in_(user_programs)) & (Post.moderate == ModerateStates.NotVerified.value)).count()
-        posts = Post.select().where((Post.parse_program.in_(user_programs)) & (Post.moderate == ModerateStates.NotVerified.value))
+        posts = Post.select().where((Post.parse_program.in_(user_programs)) & (Post.moderate == ModerateStates.NotVerified.value)).order_by(Post.dt.asc())
     # Получаем сдвиг
     try:
         offset = data['offset']
@@ -215,6 +219,10 @@ async def getter_show_post_for_view(**_kwargs):
     else:
         post_big = False
     # Возвращаем значения
+    # try:
+    #     await bot.delete_message(user_id, tmp_msg.message_id)
+    # except:
+    #     pass
     return {
         "offset": offset,
         "post_desc": post_desc.POST_DESC,
