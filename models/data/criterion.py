@@ -9,6 +9,7 @@ class VideoPlatform(enum.Enum):
     Ignore = 1
     OnlyYouTube = 2
     OnlyVK = 3
+    #IfCantDownloadIgnore = 4
 
 class UrlAction(enum.Enum):
     Accept = 0 # Оставлять ссылки

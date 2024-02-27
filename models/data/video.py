@@ -8,7 +8,8 @@ class Video(Model):
     url = TextField()
     file = TextField(null=True)
     file_id = TextField(null=True)
-    title = TextField()
-    description = TextField()
+    title = TextField(default='')
+    description = TextField(default='')
+    duration = IntegerField(default=0)
     class Meta:
         database = db

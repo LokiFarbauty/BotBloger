@@ -6,6 +6,11 @@ from math import ceil
 from aiogram import types
 from datetime import datetime
 from peewee import fn
+import translators as ts
+import yt_dlp
+import main_config
+
+
 
 # models
 from models.data.publicator import Publicator, PublicatorStates, PublicatorModes
@@ -28,6 +33,7 @@ from routers.bots.telegram.bots import get_BotExt, BotStatus
 from routers.logers import publicators_loger, app_loger
 from routers.publicate.telegraph_tools import put_post_to_telegraph
 from routers.parsing.analyzer import check_text
+from routers.publicate.video_tools import download_and_compress_video
 
 
 # class TGPublicator():
@@ -227,6 +233,12 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         # Проверяем пост на наличие мата
         post_index = PostText.get_by_id(post_key)
         post_text = post_index.text
+        # Переводим текст
+        try:
+            if post.translation != 'ru':
+                post_text = ts.translate_text(post_text, to_language=post.translation)
+        except Exception as ex:
+            publicators_loger.warning(f'Не удалось перевести текст {post_index} на язык {post.translation}. Ошибка: {ex}')
         # if publicator.criterion.check_mat == 1:
         #     check_mat = check_mat_in_text(post_text)
         #     if check_mat:
@@ -243,8 +255,22 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             img_urls = img_urls[:9]
         # Добавляем в текст линки и ссылки на видео
         videos = Video.select().where(Video.owner==post)
+        video_files = []
         for video in videos:
-            post_text = f'{post_text}\n<a href="{video.url}">{video.title}</a>'
+            try:
+                # Скачиваем видео
+                filename = download_and_compress_video(video.url,
+                                                       output_directory=main_config.DOWNLOADS_PATH,
+                                                       target_size=51000000,
+                                                       max_duration=1800)
+                if filename != '':
+                    # Выкладываем видео
+                    video_files.append(filename)
+                else:
+                    raise ValueError("Выкладываем видео ссылкой")
+                #
+            except:
+                post_text = f'{post_text}\n<a href="{video.url}">{video.title}</a>'
         links = Link.select().where(Link.owner == post)
         for link in links:
             post_text = f'{post_text}\n<a href="{link.url}">{link.title}</a>'
@@ -278,13 +304,35 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                 post_text_preview = f'{post_text_preview}\n<b><a href="{tg_url}">Показать полностью</a></b>'
                 post.telegraph_url = tg_url
                 post.save()
-            # Готовим картинку (при наличии)
-            if len(img_urls) == 0:
-                await bot_obj.send_message(chat_id=channel_tg_id, text=post_text_preview, parse_mode='HTML',
+            # Готовим картинку и видео (при наличии)
+            if len(img_urls) == 0 and len(video_files) == 0 :
+                try:
+                    await bot_obj.send_message(chat_id=channel_tg_id, text=post_text_preview, parse_mode='HTML',
                                        disable_web_page_preview=True)
-            elif len(img_urls) == 1:
-                await bot_obj.send_photo(chat_id=channel_tg_id, photo=img_urls[0], caption=post_text_preview, parse_mode='HTML')
-            elif len(img_urls) > 1:
+                except:
+                    pass
+            elif len(img_urls) == 1 and len(video_files) == 1:
+                media = []
+                media.append(types.InputMediaPhoto(media=img_urls[0], caption=post_text_preview, parse_mode='HTML'))
+                media.append(types.InputMediaVideo(media=types.FSInputFile(video_files[0]), parse_mode='HTML'))
+                try:
+                    await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                except:
+                    pass
+            elif len(img_urls) == 1 or len(video_files) == 1:
+                if len(img_urls) == 1:
+                    try:
+                        await bot_obj.send_photo(chat_id=channel_tg_id, photo=img_urls[0], caption=post_text_preview, parse_mode='HTML')
+                    except:
+                        pass
+                if len(video_files) == 1:
+                    try:
+                        #with open(video_files[0], 'rb') as video:
+                        video = types.FSInputFile(video_files[0])
+                        await bot_obj.send_video(chat_id=channel_tg_id, video=video, caption=post_text_preview, parse_mode='HTML')
+                    except:
+                        pass
+            elif len(img_urls) > 1 or len(video_files) > 1:
                 media = []
                 first = True
                 for el in img_urls:
@@ -293,7 +341,20 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                         first = False
                     else:
                         media.append(types.InputMediaPhoto(media=el))
-                await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                for video in video_files:
+                    if first:
+                        media.append(types.InputMediaVideo(media=types.FSInputFile(video), caption=post_text_preview, parse_mode='HTML'))
+                        first = False
+                    else:
+                        media.append(types.InputMediaVideo(media=types.FSInputFile(video)))
+                try:
+                    media = media[:9]
+                except:
+                    pass
+                try:
+                    await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                except:
+                    pass
         elif (post_text_len <= PostTextlen.Short.value):
             # Текст короткий
             state = 'Размещение короткого текста'
@@ -307,12 +368,34 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             except:
                 pass
             # Готовим картинку (при наличии)
-            if len(img_urls) == 0 and post_text_len > 0:
-                await bot_obj.send_message(chat_id=channel_tg_id, text=post_text, parse_mode='HTML',
+            if len(img_urls) == 0 and len(video_files) == 0 and post_text_len > 0:
+                try:
+                    await bot_obj.send_message(chat_id=channel_tg_id, text=post_text, parse_mode='HTML',
                                        disable_web_page_preview=False)
-            elif len(img_urls) == 1:
-                await bot_obj.send_photo(chat_id=channel_tg_id, photo=img_urls[0], caption=post_text, parse_mode='HTML')
-            elif len(img_urls) > 1:
+                except:
+                    pass
+            elif len(img_urls) == 1 and len(video_files) == 1:
+                media = []
+                media.append(types.InputMediaPhoto(media=img_urls[0], caption=post_text, parse_mode='HTML'))
+                media.append(types.InputMediaVideo(media=types.FSInputFile(video_files[0]), parse_mode='HTML'))
+                try:
+                    await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                except:
+                    pass
+            elif len(img_urls) == 1 or len(video_files) == 1:
+                if len(img_urls) == 1:
+                    try:
+                        await bot_obj.send_photo(chat_id=channel_tg_id, photo=img_urls[0], caption=post_text, parse_mode='HTML')
+                    except:
+                        pass
+                if len(video_files) == 1:
+                    try:
+                        video = types.FSInputFile(video_files[0])
+                        await bot_obj.send_video(chat_id=channel_tg_id, video=video, caption=post_text,
+                                                 parse_mode='HTML')
+                    except Exception as ex:
+                        pass
+            elif len(img_urls) > 1 or len(video_files) > 1:
                 media = []
                 first = True
                 for el in img_urls:
@@ -321,7 +404,20 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                         first = False
                     else:
                         media.append(types.InputMediaPhoto(media=el))
-                await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                for video in video_files:
+                    if first:
+                        media.append(types.InputMediaVideo(media=types.FSInputFile(video), caption=post_text, parse_mode='HTML'))
+                        first = False
+                    else:
+                        media.append(types.InputMediaVideo(media=types.FSInputFile(video)))
+                try:
+                    media = media[:9]
+                except:
+                    pass
+                try:
+                    await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                except:
+                    pass
         else:
             pass
         # Выкладываем документы, аудио, опросы
@@ -375,18 +471,27 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         if len(audio_urls) == 1:
             #await bot_obj.send_audio(chat_id=channel_tg_id, audio=audio_urls[0], performer=audio_artists[0], title=audio_titles[0])
             sf = types.URLInputFile(url=audio_urls[0], filename=f'{audio_artists[0]} - {audio_titles[0]}.mp3')
-            await bot_obj.send_document(chat_id=channel_tg_id, document=sf)
+            try:
+                await bot_obj.send_document(chat_id=channel_tg_id, document=sf)
+            except:
+                pass
         elif len(audio_urls) > 1:
             media = []
             for i, el in enumerate(audio_urls, 0):
                 media.append(types.InputMediaAudio(media=el, performer=audio_artists[i], title=audio_titles[i]))
-            await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка audio
+            try:
+                await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка audio
+            except:
+                pass
         # Получаем и выкладываем опросы
         state = 'Размещение опроса'
         poll_mlds = Poll.select().where(Poll.owner == post)
         for poll_mld in poll_mlds:
             options = poll_mld.answers.split('||')
-            await bot_obj.send_poll(chat_id=channel_tg_id, question=poll_mld.question, options=options)  # Отправка опросов
+            try:
+                await bot_obj.send_poll(chat_id=channel_tg_id, question=poll_mld.question, options=options)  # Отправка опросов
+            except:
+                pass
         # Сохраняем статус публикатора
         if save_last_post_id:
             publicator.last_post_id = post.post_id

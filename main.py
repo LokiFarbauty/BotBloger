@@ -1,7 +1,10 @@
 import asyncio
 import logging
+import os
+import shutil
 
 # не удалять
+import main_config
 from routers.parsing.parsers_dispatсher import parsers_dispatcher
 import routers.publicate.publicators as publicators_unit
 import views.telegram.interface_dispather # Загрузка интерфейсов ботов
@@ -79,6 +82,13 @@ async def service_task():
             for post in posts_to_del:
                 num += 1
                 delete_post(post=post)
+            # Удаляем скачаные видео
+            for filename in os.listdir(main_config.DOWNLOADS_PATH):
+                filepath = os.path.join(main_config.DOWNLOADS_PATH, filename)
+                try:
+                    shutil.rmtree(filepath)
+                except OSError:
+                    os.remove(filepath)
         except Exception as ex:
             pass
         await asyncio.sleep(100000)

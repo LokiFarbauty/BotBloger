@@ -16,9 +16,14 @@ from routers.publicate.telegraph_tools import put_post_to_telegraph
 from routers.publicate.publicators import (public_post_to_channel, get_publicator_process_state,
                                            stop_publicator_process, start_publicator_process)
 from routers.parsing.rating import refresh_posts_rating
+from routers.publicate.video_tools import compress_video, scale_width_video, get_video_duration
+#
 import yt_dlp
 from main_config import MAIN_PATH
 import translators as ts
+import os
+from contextlib import redirect_stdout
+
 
 commands = []
 
@@ -211,12 +216,58 @@ commands.append(
 
 async def download_video(video_url: str):
     try:
-        output_directory = f'{MAIN_PATH}/downloads'
-        ydl_opts = {'outtmpl': f'{output_directory}/%(title)s.%(ext)s'}
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([video_url])
-            info = ydl.extract_info(video_url, download=True)
-        return f"Видео успешно скачано\n «{info['title']}»"
+        target_size=52000000
+        with redirect_stdout(open(os.devnull, "w")):
+            output_directory = f'{MAIN_PATH}\\downloads'
+            #ydl_opts = {'outtmpl': f'{output_directory}\\%(title)s.%(ext)s'}
+            ydl_opts = {'outtmpl': f'{output_directory}\\%(title)s.%(ext)s'}
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                #ydl.download([video_url])
+                info = ydl.extract_info(video_url, download=True)
+                try:
+                    pass
+                    # duration = info['duration']
+                    # resolution = info['resolution']
+                    # height = info['height']
+                    # width = info['width']
+                except:
+                    pass
+                filename = f"{output_directory}\\{info['title']}.{info['ext']}"
+            # Определяем дляительность видео если больше 30 минут то выкладываем ссылкой
+            duration = get_video_duration(filename)
+            if duration != 0 and duration < 1800:
+                # Определяем возможно ли выложить видео в исходном виде
+                filesize = os.path.getsize(filename)
+                # Если размер файла больше 50 мегабайт пытаемся перкодировать видео
+                if filesize > target_size:
+                    new_filename1 = scale_width_video(filename, f'{filename}_tmp1')
+                    # Удаляем исходный файл
+                    try:
+                        os.remove(filename)
+                    except:
+                        pass
+                    # Переименовываем файл в исходный
+                    try:
+                        os.rename(new_filename1, filename)
+                    except:
+                        pass
+                # Снова проверяем размер файла если он больше целевого то пытаемся сжимать битрейт
+                filesize = os.path.getsize(filename)
+                if filesize > target_size:
+                    new_filename2 = compress_video(filename, f'{filename}_tmp2', int(target_size / 1000))
+                    try:
+                        os.remove(filename)
+                    except:
+                        pass
+                    try:
+                        os.rename(new_filename2, filename)
+                    except:
+                        pass
+                pass
+                return f"Видео скачано и сжато."
+            else:
+                # Видео слишком длинное выкладывваем ссылкой
+                return f"Видео скачано, но не сжато, так как слишком длинное."
     except Exception as ex:
         return f'Error: {ex}'
 

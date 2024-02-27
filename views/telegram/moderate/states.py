@@ -9,6 +9,7 @@ class SG_Main(StatesGroup):
     reference = State()
     ads = State()
     post_utilities = State()
+    language = State()
 
 # class SG_enter_token_menu(StatesGroup):
 #     make_vk_sync = State()

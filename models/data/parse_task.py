@@ -19,12 +19,12 @@ class ParseTaskActive(enum.Enum):
     InWork = 1 # задача в работе
 
 class ParseModes(enum.Enum):
-    Ar = 0  # не задан
-    Single = 1 # публиковать один раз случайный пост
-    Period = 2 # публиковать периодически случайный пост
-    Marketing = 3 # режим рекламная компания публиковать самые рейтинговые из диапазона
-    New = 4 # публиковать новые
-    Premoderate = 5  # публиковать отмеченные в премодерации посты начиная с самой поздней даты, после публикации помечаем пост к удалению либо в архив
+    UNKNOWN = 0
+    ARCHIVE = 1  # парсить все посты
+    UPDATE_PERIOD = 2 #
+    UPDATE_SINGLE = 3 #
+    COUNT = 4 #
+
 
 class ParseTask(Model):
     name = TextField() # имя задачи
@@ -39,12 +39,12 @@ class ParseTask(Model):
     target_name = CharField(null=True) # id название цели (для ВК)
     target_url = TextField(null=True) # ссылка откуда парсить (для WEB)
     target_type = CharField(null=True) # тип цели (в ВК: user, group ...)
-    mode = IntegerField() # режим парсинга ParseModes - на данный момент не задействовано, ни на что не влияет, режим определяется параметрами периода и количества постов
+    mode = IntegerField(default=0) # режим парсинга ParseModes - на данный момент не задействовано, ни на что не влияет, режим определяется параметрами периода и количества постов
     last_post_id = IntegerField() # id последнего спарсеного поста (для ВК)
     filter = CharField(null=True) # фильтр (для ВК)
     options = TextField(null=True) # произвольные опции
     cr_dt = DateTimeField() # дата создания задачи
-    active = IntegerField()  # флаг автостарта (используется для автозапуска)
+    active = IntegerField(default=0)  # флаг автостарта (используется для автозапуска)
     start_parse_hour = IntegerField(default=0)  # время начала парсинга
     end_parse_hour = IntegerField(default=6)  # время окончания парсинга
     post_num = IntegerField() # количество постов, которое необходимо собрать (для ВК)
@@ -56,6 +56,7 @@ class ParseTask(Model):
     avg_post_rate = FloatField(default=0) # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
     max_post_rate = FloatField(default=0) # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
     min_post_rate = FloatField(default=0) # Технический параметр для расчета рейтинга поста - расчитывается сам, менять в ручную не надо
+    posts_remains = IntegerField(default=0)  # Технический параметр - трогать не надо, определяет количество сделаных циклов парсинга (при парсинге архива)
 
 
 

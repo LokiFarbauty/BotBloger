@@ -1,13 +1,13 @@
 
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager, StartMode
-from aiogram_dialog.widgets.kbd import Cancel, Button, Back, Select, SwitchTo, Start
+from aiogram_dialog.widgets.kbd import Cancel, Button, Back, Select, SwitchTo, Start, Row
 from aiogram_dialog.widgets.text import Const, Format, Multi
 #
 from views.telegram.moderate import states
 #
 from models.data.user import User
-from models.data.post import Post, ModerateStates
+from models.data.post import Post, ModerateStates, LanguageStates
 from models.data.video import Video
 from models.data.audio import Audio
 from models.data.poll import Poll
@@ -30,7 +30,12 @@ async def get_post_desc(post: Post, post_text: str, offset: int, user: User, pos
     # Получаем видео
     videos = Video.select().where(Video.owner == post)
     for video in videos:
-        post_text = f'{post_text}\n🎞 {video.title}\n{video.url}'
+        if video.duration >= 1800:
+            post_text = f'{post_text}\n🎞 {video.title}\n{video.url}\n(❗️ Видео длинее 30 минут, оно будет выложенно ссылкой).'
+        elif video.duration == 0:
+            post_text = f'{post_text}\n🎞 {video.title}\n{video.url}\n(❗️ Длинна видео не определена, возможно оно будет выложенно ссылкой).'
+        else:
+            post_text = f'{post_text}\n🎞 {video.title}\n{video.url}'
     # Получаем ссылки
     links = Link.select().where(Link.owner == post)
     for link in links:
@@ -155,6 +160,110 @@ SKIP_POST_BUTTON = Button(
     on_click=event_skip_post,
     id="btn_skip_post"
 )
+
+async def event_enter_language(callback: CallbackQuery, button: Button,
+                    dialog_manager: DialogManager):
+    post = dialog_manager.dialog_data['post']
+    lng = str(button.widget_id)
+    lng = lng.replace('_', '-')
+    post.translation = lng
+    post.save()
+    await dialog_manager.switch_to(states.SG_Main.for_viewing)
+    pass
+
+
+RU_LNG_BUTTON = Button(
+    Const('🇷🇺'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.RUS.value)
+)
+
+EN_LNG_BUTTON = Button(
+    Const('🇬🇧'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.ENG.value)
+)
+
+GER_LNG_BUTTON = Button(
+    Const('🇩🇪'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.GER.value)
+)
+
+CHN_LNG_BUTTON = Button(
+    Const('🇨🇳'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.CHN.value)
+)
+
+IND_LNG_BUTTON = Button(
+    Const('🇮🇳'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.IND.value)
+)
+
+POL_LNG_BUTTON = Button(
+    Const('🇵🇱'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.POL.value)
+)
+
+PORT_LNG_BUTTON = Button(
+    Const('🇵🇹'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.PTG.value)
+)
+
+KOR_LNG_BUTTON = Button(
+    Const('🇰🇷'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.KOR.value)
+)
+
+ISP_LNG_BUTTON = Button(
+    Const('🇪🇸'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.ISP.value)
+)
+
+UKR_LNG_BUTTON = Button(
+    Const('🇺🇦'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.UKR.value)
+)
+
+FRA_LNG_BUTTON = Button(
+    Const('🇫🇷'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.FRA.value)
+)
+
+TUR_LNG_BUTTON = Button(
+    Const('🇹🇷'),
+    on_click=event_enter_language,
+    id=str(LanguageStates.TUR.value)
+)
+
+
+LANGS_BUTTONS_1 = Row(
+    RU_LNG_BUTTON,
+    EN_LNG_BUTTON,
+    GER_LNG_BUTTON,
+    FRA_LNG_BUTTON,
+    ISP_LNG_BUTTON,
+    PORT_LNG_BUTTON,
+)
+
+LANGS_BUTTONS_2 = Row(
+    CHN_LNG_BUTTON,
+    KOR_LNG_BUTTON,
+    IND_LNG_BUTTON,
+    TUR_LNG_BUTTON,
+    UKR_LNG_BUTTON,
+    POL_LNG_BUTTON,
+)
+
+LANGS_BUTTONS = [LANGS_BUTTONS_1, LANGS_BUTTONS_2]
 
 async def event_public_post(callback: CallbackQuery, button: Button,
                     dialog_manager: DialogManager):

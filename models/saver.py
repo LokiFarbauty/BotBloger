@@ -69,7 +69,7 @@ async def save_posts(posts: list[APost], target_id: int, task: ParseTask, progra
                 poll_obj.save()
             # Сохраняем видео
             for video in post.videos:
-                video_obj = Video.create(owner_id=post_obj, title=video['title'], url=video['url'], description=video['description'])
+                video_obj = Video.create(owner_id=post_obj, title=video['title'], url=video['url'], description=video['description'], duration=video['duration'])
                 video_obj.save()
             # Сохраняем аудио
             for audio in post.audios:

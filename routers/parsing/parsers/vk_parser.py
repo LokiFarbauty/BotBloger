@@ -43,7 +43,7 @@ class Parser(ParserInterface):
         if json_data != None:
             pass
         else:
-            return ParserInterfaceReturns.GetVKWallError
+            return ParserInterfaceReturns.GetVKWallError.value
         # Преобразовываем данные в стандартный формат и отправляем в исполнителю
         result = await cls.normalize_data(json_data, params)
         return result
@@ -118,6 +118,8 @@ class Parser(ParserInterface):
                     req = await new_session.get(url, headers=header, proxy=proxy_str, ssl=False)
                     if req.status != 200:
                         # error = service_func.check_error_code_in_json(req)
+                        print(f'Парсер: VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга:'
+                            f' код requests - {req.status_code}')
                         cls.loger.error(
                             f'Парсер: VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга:'
                             f' код requests - {req.status_code}')
@@ -128,6 +130,8 @@ class Parser(ParserInterface):
                 req = await session.get(url, headers=header, proxy=proxy_str, ssl=False)
                 if req.status != 200:
                     # error = service_func.check_error_code_in_json(req)
+                    print(f'Парсер: VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга:'
+                          f' код requests - {req.status_code}')
                     cls.loger.error(
                         f'Парсер: VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга:'
                         f' код requests - {req.status_code}')
@@ -142,7 +146,7 @@ class Parser(ParserInterface):
         except Exception as ex:
             cls.loger.error(
                 f'Парсер VKParser (target_id={target_id}, filter={params.filter}) ошибка парсинга: {ex}')
-            return ParserInterfaceReturns.PyError
+            return ParserInterfaceReturns.PyError, 0
 
     @classmethod
     async def get_audio_url(cls, token, owner_id, audio_id) -> str:
@@ -350,6 +354,10 @@ class Parser(ParserInterface):
                                                         pass
                                                     # video = content_dm.Video.create(owner=post_odj, title=video_title, url=video_url)
                                                     video = {}
+                                                    try:
+                                                        video['duration'] = att_video['duration']
+                                                    except:
+                                                        video['duration'] = 0
                                                     video['title'] = video_title
                                                     video['description'] = video_description
                                                     video['url'] = video_url
@@ -372,6 +380,10 @@ class Parser(ParserInterface):
                                                 # video = content_dm.Video.create(owner=post_odj, title=video_title, url=video_url)
                                                 # videos.append([video_title, video_url])
                                                 video = {}
+                                                try:
+                                                    video['duration'] = att_video['duration']
+                                                except:
+                                                    video['duration'] = 0
                                                 video['title'] = video_title
                                                 video['description'] = video_description
                                                 video['url'] = video_url
@@ -409,6 +421,10 @@ class Parser(ParserInterface):
                                                 # videos.append(['', video_url_res])
                                                 # video = content_dm.Video.create(owner=post_odj, title=video_title, url=video_url_res)
                                                 video = {}
+                                                try:
+                                                    video['duration'] = att_video['duration']
+                                                except:
+                                                    video['duration'] = 0
                                                 # Определяем можно ли репостить видео
                                                 try:
                                                     can_repost = v_res["response"]["items"][0]["can_repost"]
@@ -430,6 +446,10 @@ class Parser(ParserInterface):
                                                 # videos.append([video_title, video_url])
                                                 # video = content_dm.Video.create(owner=post_odj, title=video_title, url=video_url)
                                                 video = {}
+                                                try:
+                                                    video['duration'] = att_video['duration']
+                                                except:
+                                                    video['duration'] = 0
                                                 video['title'] = video_title
                                                 video['url'] = video_url
                                                 video['description'] = video_description

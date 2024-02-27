@@ -5,6 +5,8 @@ import enum
 import re
 from dataclasses import dataclass
 import hashlib
+from contextlib import redirect_stdout
+import os
 #
 
 from models.data.post import Post
@@ -164,7 +166,7 @@ def del_vk_url(text: str) -> str:
                 pass
             else:
                 break
-            pos_e = text.find(']')
+            pos_e = text.find(']', pos_s)
             if pos_e != -1:
                 pass
             else:
@@ -253,24 +255,25 @@ async def analyze_posts(posts: list[APost], params: AnalyzerParams) -> list[APos
                     continue
         else:
             if params.key_words != None and params.key_words != '':
-                lem_words = lematize_words(params.key_words)
-                migths = check_text_on_keywords(posts[i].text, lem_words, normalize=True)
-                if type(migths) is not dict:
-                    raise ValueError(migths)
-                if params.key_words_mode == KeyWordsAnalyzeMode.Or:
-                    cond = False
-                    for migth in migths.values():
-                        if migth > 0:
-                            cond = True
-                            break
-                else:
-                    cond = True
-                    for migth in migths.keys():
-                        if migth == 0:
-                            cond = False
-                            break
-                if cond == False:
-                    continue
+                with redirect_stdout(open(os.devnull, "w")):
+                    lem_words = lematize_words(params.key_words)
+                    migths = check_text_on_keywords(posts[i].text, lem_words, normalize=True)
+                    if type(migths) is not dict:
+                        raise ValueError(migths)
+                    if params.key_words_mode == KeyWordsAnalyzeMode.Or:
+                        cond = False
+                        for migth in migths.values():
+                            if migth > 0:
+                                cond = True
+                                break
+                    else:
+                        cond = True
+                        for migth in migths.keys():
+                            if migth == 0:
+                                cond = False
+                                break
+                    if cond == False:
+                        continue
         # Заменяем слова
         if params.replace_words != None:
             try:

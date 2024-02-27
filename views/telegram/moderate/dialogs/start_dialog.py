@@ -33,9 +33,39 @@ from models.data.criterion import Criterion
 from datetime import datetime
 # dialogs
 from views.telegram.moderate import states, common_dlg_elements
+import translators as ts
 
 
 MAX_TEXT_SIZE = 650
+
+def get_lang_img(lang_code='ru'):
+    if lang_code == 'ru':
+        return '🇷🇺'
+    elif lang_code == 'en':
+        return '🇬🇧'
+    elif lang_code == 'de':
+        return '🇩🇪'
+    elif lang_code == 'zh-Hans':
+        return '🇨🇳'
+    elif lang_code == 'es':
+        return '🇪🇸'
+    elif lang_code == 'hi':
+        return '🇮🇳'
+    elif lang_code == 'pt':
+        return '🇵🇹'
+    elif lang_code == 'fr':
+        return '🇫🇷'
+    elif lang_code == 'uk':
+        return '🇺🇦'
+    elif lang_code == 'ko':
+        return '🇰🇷'
+    elif lang_code == 'pl':
+        return '🇵🇱'
+    elif lang_code == 'tr':
+        return '🇹🇷'
+    else:
+        return '🏳️'
+
 
 async def getter_ads(**_kwargs):
     dm = _kwargs['dialog_manager']
@@ -135,6 +165,15 @@ async def getter_reference(**_kwargs):
         "greeting": greeting,
     }
 
+async def getter_language(**_kwargs):
+    dm = _kwargs['dialog_manager']
+    event_from_user = _kwargs['event_from_user']
+    user_id = event_from_user.id
+    greeting = lexicon.GREETINGS['language']
+    return {
+        "greeting": greeting,
+    }
+
 async def getter_post_utilities(**_kwargs):
     dm = _kwargs['dialog_manager']
     event_from_user = _kwargs['event_from_user']
@@ -153,6 +192,7 @@ async def getter_show_post_for_view(**_kwargs):
     dialog_manager.dialog_data['aiogd_context'] = context
     data = dialog_manager.dialog_data
     img_url = ''
+    lang_img = '🏳️'
     img_exist = False
     user_mld = User.get_user(user_tg_id=user_id)
     # Загружаем посты из выбранной программы для рассмотрения
@@ -185,9 +225,16 @@ async def getter_show_post_for_view(**_kwargs):
         #start = time.time()
         # Получаем текст поста
         post = posts[offset]
+        lang_img = get_lang_img(post.translation)
         post_text_id = post.get_id()
         post_text_mld = PostText.get_by_id(post_text_id)
         post_text = post_text_mld.text
+        # При необходимостьи переводим текст
+        try:
+            if post.translation != 'ru':
+                post_text = ts.translate_text(post_text, to_language=post.translation)
+        except Exception as ex:
+            bots_loger.warning(f'Не удалось перевести текст {post_text_id} на язык {post.translation}. Ошибка: {ex}')
         # Получаем описание
         data['post_text_id'] = post_text_id
         data['post'] = post
@@ -225,6 +272,7 @@ async def getter_show_post_for_view(**_kwargs):
     #     pass
     return {
         "offset": offset,
+        "lang_img": lang_img,
         "post_desc": post_desc.POST_DESC,
         "post_text": post_desc.POST_TEXT,
         "post_exist": post_desc.POST_EXIST,
@@ -303,10 +351,11 @@ dialog_interface = (
             common_dlg_elements.PREV_CASE_BUTTON,
             SwitchTo(Const('⏏️'), id="btn_back", state=states.SG_Main.programm),
             #common_dlg_elements.BTN_BACK,
+            SwitchTo(Const('⚙️'), id="btn_post_utilities", state=states.SG_Main.post_utilities),
             common_dlg_elements.DEL_POST_BUTTON,
             #common_dlg_elements.SHOW_SAME_POST,
             common_dlg_elements.SKIP_POST_BUTTON,
-            SwitchTo(Const('⚙️'), id="btn_post_utilities", state=states.SG_Main.post_utilities),
+            SwitchTo(Format('{lang_img}'), id="btn_langs", state=states.SG_Main.language),
             common_dlg_elements.PUBLIC_POST_BUTTON,
             common_dlg_elements.NEXT_CASE_BUTTON,
             when=F["post_exist"]
@@ -335,6 +384,13 @@ dialog_interface = (
         getter=getter_reference,
         state=states.SG_Main.reference,
     ),
-    )
+    Window(
+        Format('{greeting}'),
+        *common_dlg_elements.LANGS_BUTTONS,
+        SwitchTo(Const(lexicon.BUTTONS['назад']), id="btn_back", state=states.SG_Main.for_viewing),
+        getter=getter_language,
+        state=states.SG_Main.language,
+    ),
+)
 
 dialog_start_moderate = Dialog(*dialog_interface)
