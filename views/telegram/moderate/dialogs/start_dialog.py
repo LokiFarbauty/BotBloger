@@ -222,11 +222,13 @@ async def getter_show_post_for_view(**_kwargs):
         offset-=1
         data['offset'] = offset
     try:
+        if offset == 14:
+            pass
         #start = time.time()
         # Получаем текст поста
         post = posts[offset]
         lang_img = get_lang_img(post.translation)
-        post_text_id = post.get_id()
+        post_text_id = post.text
         post_text_mld = PostText.get_by_id(post_text_id)
         post_text = post_text_mld.text
         # При необходимостьи переводим текст
