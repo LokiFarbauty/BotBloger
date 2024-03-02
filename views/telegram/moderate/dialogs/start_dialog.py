@@ -232,7 +232,13 @@ async def getter_show_post_for_view(**_kwargs):
         # При необходимостьи переводим текст
         try:
             if post.translation != 'ru':
-                post_text = ts.translate_text(post_text, to_language=post.translation)
+                translators_lst = ['bing', 'google', 'yandex', 'baidu', 'deepl']
+                for translator in translators_lst:
+                    try:
+                        post_text = ts.translate_text(post_text, translator=translator, to_language=post.translation)
+                        break
+                    except Exception as ex:
+                        pass
         except Exception as ex:
             bots_loger.warning(f'Не удалось перевести текст {post_text_id} на язык {post.translation}. Ошибка: {ex}')
         # Получаем описание
