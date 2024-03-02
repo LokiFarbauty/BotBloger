@@ -1,5 +1,5 @@
 '''Команды для терминала, он заберает их отсюда'''
-# py
+# py1
 from datetime import datetime
 
 # models
@@ -631,10 +631,10 @@ async def delete_post(post_key: int):
         hashtags.execute()
         # Удаляем пост и текст
         if type(post) is Post:
-            PostText.delete_by_id(post.get_id())
+            PostText.delete_by_id(post.text)
             post.delete_instance()
         else:
-            PostText.delete_by_id(post)
+            pass
     except Exception as ex:
         return f'Ошибка: {ex}.'
     return f'Пост удален.'
@@ -676,8 +676,7 @@ async def delete_task_posts(task_key: int):
             hashtags = Post_Hashtag.delete().where(Post_Hashtag.post == post)
             hashtags.execute()
             # Удаляем пост и текст
-            post_id = post.get_id()
-            PostText.delete_by_id(post_id)
+            PostText.delete_by_id(post.text)
             post.delete_instance()
     except Exception as ex:
         return f'Ошибка: {ex}.'
@@ -721,7 +720,7 @@ async def delete_word_posts(word: str):
             hashtags = Post_Hashtag.delete().where(Post_Hashtag.post == post)
             hashtags.execute()
             # Удаляем пост и текст
-            PostText.delete_by_id(post.get_id())
+            PostText.delete_by_id(post.text)
             post.delete_instance()
     except Exception as ex:
         return f'Ошибка: {ex}.'
@@ -763,7 +762,7 @@ async def clear_posts_in_db():
             hashtags = Post_Hashtag.delete().where(Post_Hashtag.post == post)
             hashtags.execute()
             # Удаляем пост и текст
-            PostText.delete_by_id(post.get_id())
+            PostText.delete_by_id(post.text)
             post.delete_instance()
     except Exception as ex:
         return f'Ошибка: {ex}.'

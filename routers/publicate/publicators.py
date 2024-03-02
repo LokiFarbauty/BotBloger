@@ -231,7 +231,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                 f'Попытка публикации через неработающего бота. Публикатор: {publicator.get_id()}. Пост: {post.get_id()}. Публикатор будет остановлен.')
             return PublicateErrors.BotError
         # Проверяем пост на наличие мата
-        post_index = PostText.get_by_id(post_key)
+        post_index = PostText.get_by_id(post.text)
         post_text = post_index.text
         # Переводим текст
         try:

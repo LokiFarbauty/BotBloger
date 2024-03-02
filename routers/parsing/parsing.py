@@ -126,6 +126,9 @@ async def period_parsing_process(task: ParseTask, parser, parsing_mode, params: 
     got_post_num = 0
     last_post_id_saved = False
     end_parse = False
+    # task_id = task.get_id
+    # if task_id == 7:
+    #     pass
     while posts_got < source_post_count:
         #
         # if posts_got>5150:

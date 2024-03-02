@@ -125,7 +125,7 @@ def delete_post(post_key: int = 0, post: Post = None):
         hashtags = Post_Hashtag.delete().where(Post_Hashtag.post == post)
         hashtags.execute()
         # Удаляем пост и текст
-        PostText.delete_by_id(post.get_id())
+        PostText.delete_by_id(post.text)
         post.delete_instance()
     except Exception as ex:
         return f'Ошибка: {ex}.'

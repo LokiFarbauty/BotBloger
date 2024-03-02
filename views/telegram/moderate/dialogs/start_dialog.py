@@ -1,5 +1,5 @@
 '''В этом диалоге должно определятся зарегистрирован ли пользователь, либо нужно пройти процедуру регистрации'''
-#
+#1
 from operator import itemgetter
 from typing import Any
 from aiogram.types import CallbackQuery, ContentType, Message, FSInputFile
