@@ -9,7 +9,7 @@ class ParseProgram(Model):
     cr_dt = DateTimeField(default=0) # дата создания
     img = CharField(null=True) # указатель на изображение
     #user = ForeignKeyField(User, backref='parse_programs', index=True)
-    description = TextField(default='') # описание
+    description = TextField(default='Нет') # описание
 
     class Meta:
         database = db

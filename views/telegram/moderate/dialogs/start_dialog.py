@@ -88,7 +88,7 @@ async def getter_scheme(**_kwargs):
     for i, user_program in enumerate(user_programs, 1):
         greeting = f'{greeting}{i}. "{user_program.name}":\n'
         # Получаем задачи
-        parse_tasks = ParseTask.select().where(ParseTask.program == user_program)
+        parse_tasks = ParseTask.select().where((ParseTask.program == user_program) & (ParseTask.active == 1))
         for parse_task in parse_tasks:
             greeting = f'{greeting}  <b>"{parse_task.target_name}"</b>(VK) -> \n'
             target = ''

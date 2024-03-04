@@ -57,68 +57,74 @@ async def get_post_count_in_VK_source(parser: ParserInterface, task: ParseTask):
 
 async def arhive_parsing_process(task: ParseTask, parser, params: ParseParams, source_post_count: int, last_post_id: int, post_num = 50, debug = False):
     last_post_id_saved = False
-    posts_remains = task.posts_remains
-    if posts_remains > source_post_count:
-        parsers_loger.info(f'Архивный парсинг задачи <{task.name}> остановлен. Все посты уже загружены.')
-        print(f'Архивный парсинг задачи <{task.name}> остановлен. Все посты уже загружены.')
-        return
-    for posts_got in tqdm(range(posts_remains, source_post_count, post_num), colour='green', desc='Выгружаем данные'):
-        # Парсим
-        if debug:
-            parsers_loger.info(f'Новый цикл парсинга <{task.name}>. Постов скачано: {posts_got} из {source_post_count}')
-            print(f'Новый цикл парсинга <{task.name}>. Постов скачано: {posts_got} из {source_post_count}')
-        #
-        params.offset = posts_got
-        conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
-        async with aiohttp.ClientSession(connector=conn) as new_session:
-            parse_res = await parser.parse(params, session=new_session)
-        # Если ничего не спарсили дальше не парсим
-        if type(parse_res) is not list or parse_res == []:
-            # Ошибка при получении данных из ВК
-            task.posts_remains = posts_got-1
-            task.save()
-            parsers_loger.error(f'При выполнение парсинга "{task.name}" произошла ошибка: {parse_res} (break)')
-            print(f'При выполнение архивного парсинга "{task.name}" произошла ошибка: {parse_res}. При возобновлении будут получены оставшиеся посты.')
-            # print(f'При выполнение задачи "{task.name}" произошла ошибка: парсер не вернул данные (break).'
-            # print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
-            break
-        # Подготовка параметров
-        if task.criterion.post_min_text_length == None:
-            min_text_len = 0
-        else:
-            min_text_len = task.criterion.post_min_text_length
-        if task.criterion.post_max_text_length == None:
-            max_text_len = PARSE_VK_MAX_TEXT_LEN
-        else:
-            max_text_len = task.criterion.post_max_text_length
-        # Анализ
-        if posts_got > 678*50:
-            pass
-        state = 'анализ'
-        anl_params = AnalyzerParams(task_id=task.get_id(), target_id=task.target_id, min_text_len=min_text_len,
-                                    max_text_len=max_text_len,
-                                    key_words=task.criterion.key_words, hashtags=task.criterion.hashtags,
-                                    clear_words=task.criterion.clear_words, replace_words=task.criterion.replace_words,
-                                    forbidden_words=task.criterion.forbidden_words,
-                                    post_start_date=task.criterion.post_start_date,
-                                    post_end_date=task.criterion.post_end_date,
-                                    last_post_id=last_post_id, video_platform=task.criterion.video_platform,
-                                    del_hashtags=task.criterion.del_hashtags,
-                                    url_action=task.criterion.url_action, min_rate=task.criterion.min_rate)
-        proc_posts = await analyze_posts(parse_res, anl_params)
-        state = 'сохранение'
-        if not last_post_id_saved and proc_posts != []:
-            try:
-                task.last_post_id = proc_posts[0].post_id
+    try:
+        posts_remains = int(task.posts_remains)
+        if posts_remains > source_post_count:
+            parsers_loger.info(f'Архивный парсинг задачи <{task.name}> остановлен. Все посты уже загружены.')
+            print(f'Архивный парсинг задачи <{task.name}> остановлен. Все посты уже загружены.')
+            return
+        for posts_got in tqdm(range(posts_remains, source_post_count, post_num), colour='green', desc='Выгружаем данные'):
+            # Парсим
+            if debug:
+                parsers_loger.info(f'Новый цикл парсинга <{task.name}>. Постов скачано: {posts_got} из {source_post_count}')
+                print(f'Новый цикл парсинга <{task.name}>. Постов скачано: {posts_got} из {source_post_count}')
+            #
+            params.offset = posts_got
+            conn = aiohttp.TCPConnector(limit=None, ttl_dns_cache=300)
+            async with aiohttp.ClientSession(connector=conn) as new_session:
+                parse_res = await parser.parse(params, session=new_session)
+            # Если ничего не спарсили дальше не парсим
+            if type(parse_res) is not list or parse_res == []:
+                # Ошибка при получении данных из ВК
+                task.posts_remains = posts_got-post_num
                 task.save()
-                last_post_id_saved = True
-            except:
+                parsers_loger.error(f'При выполнение парсинга "{task.name}" произошла ошибка: {parse_res} (break)')
+                print(f'При выполнение архивного парсинга "{task.name}" произошла ошибка: {parse_res}. При возобновлении будут получены оставшиеся посты.')
+                # print(f'При выполнение задачи "{task.name}" произошла ошибка: парсер не вернул данные (break).'
+                # print(f'Выполнение задачи "{task.name}" завершено. Загружено {got_post_num} постов.')
+                break
+            # Подготовка параметров
+            if task.criterion.post_min_text_length == None:
+                min_text_len = 0
+            else:
+                min_text_len = task.criterion.post_min_text_length
+            if task.criterion.post_max_text_length == None:
+                max_text_len = PARSE_VK_MAX_TEXT_LEN
+            else:
+                max_text_len = task.criterion.post_max_text_length
+            # Анализ
+            if posts_got > 678*50:
                 pass
-        await save_posts(proc_posts, task.target_id, task=task, program=task.program)
-        #
-    task.posts_remains = source_post_count
-    task.save()
-    await refresh_avg_rating(task)
+            state = 'анализ'
+            anl_params = AnalyzerParams(task_id=task.get_id(), target_id=task.target_id, min_text_len=min_text_len,
+                                        max_text_len=max_text_len,
+                                        key_words=task.criterion.key_words, hashtags=task.criterion.hashtags,
+                                        clear_words=task.criterion.clear_words, replace_words=task.criterion.replace_words,
+                                        forbidden_words=task.criterion.forbidden_words,
+                                        post_start_date=task.criterion.post_start_date,
+                                        post_end_date=task.criterion.post_end_date,
+                                        last_post_id=last_post_id, video_platform=task.criterion.video_platform,
+                                        del_hashtags=task.criterion.del_hashtags,
+                                        url_action=task.criterion.url_action, min_rate=task.criterion.min_rate)
+            proc_posts = await analyze_posts(parse_res, anl_params)
+            state = 'сохранение'
+            if not last_post_id_saved and proc_posts != []:
+                try:
+                    task.last_post_id = proc_posts[0].post_id
+                    task.save()
+                    last_post_id_saved = True
+                except:
+                    pass
+            await save_posts(proc_posts, task.target_id, task=task, program=task.program)
+            task.posts_remains = posts_got
+            task.save()
+            #
+        #task.posts_remains = source_post_count
+        #task.save()
+        await refresh_avg_rating(task)
+    except Exception as ex:
+        print(f'При выполнении задачи "{task.name}" произошла ошибка: "{ex}". Задача остановлена.')
+        parsers_loger.error(f'При выполнении задачи "{task.name}" произошла ошибка: "{ex}". Задача остановлена.')
 
 async def period_parsing_process(task: ParseTask, parser, parsing_mode, params: ParseParams, source_post_count: int, last_post_id: int, post_num = 50, debug = False):
     '''Субпроцесс парсинга когда требуется парсить периодически'''
@@ -268,7 +274,7 @@ async def parsing(**_kwargs):
         else:
             delay = 1
             delay = random.randrange(start=30, stop=300)
-        #delay=1
+        delay=1
         if debug: parsers_loger.info(f'Выполнение задачи <{par_task.name}> начнётся через {delay/60} мин.')
         if not quick_start: await asyncio.sleep(delay)
         #
@@ -292,11 +298,12 @@ async def parsing(**_kwargs):
                 parsers_loger.critical(f'Задача "{par_task.name}" не найдена. Процесс выполнения задачи прерван.')
                 return
             # Проверяем время
-            cur_time = datetime.now().time().hour
-            if cur_time < task.start_parse_hour or cur_time > task.end_parse_hour:
-                # Ждем 20 минут
-                await asyncio.sleep(1200)
-                continue
+            if not quick_start:
+                cur_time = datetime.now().time().hour
+                if cur_time < task.start_parse_hour or cur_time > task.end_parse_hour:
+                    # Ждем 20 минут
+                    await asyncio.sleep(1200)
+                    continue
             # Проверяем не превышен ли лимит постов на премодерации
             period = task.period
             if task.moderated == 1:
