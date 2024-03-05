@@ -44,11 +44,12 @@ def scale_width_video(video_full_path: str, output_file_name: str, target_width 
             new_height = int(scale * height)
             if (new_height % 2 == 1):
                 new_height += 1
-            i = ffmpeg.input(video_full_path)
-            with redirect_stdout(open(os.devnull, "w")):
-                ffmpeg.output(i, output_file_name,
-                               **{'r': f'{frame_rate}', 's': f'{new_width}x{new_height}', 'c:v': 'libx264', 'f': 'mp4', 'loglevel': 'quiet'}
-                               ).overwrite_output().run()
+            i = ffmpeg.input(video_full_path,  nostdin=None)
+            #with redirect_stdout(open(os.devnull, "w")):
+            ffmpeg.output(i, output_file_name,
+                          #**{'r': f'{frame_rate}', 's': f'{new_width}x{new_height}', 'c:v': 'libx264', 'f': 'mp4',}
+                           **{'r': f'{frame_rate}', 's': f'{new_width}x{new_height}', 'c:v': 'libx264', 'f': 'mp4', 'loglevel': 'quiet'}
+                           ).overwrite_output().run()
         else:
             os.rename(video_full_path, output_file_name)
         return output_file_name
@@ -65,7 +66,6 @@ def compress_video(video_full_path, output_file_name, target_size):
     try:
         min_audio_bitrate = 32000
         max_audio_bitrate = 256000
-
         probe = ffmpeg.probe(video_full_path)
         # Video duration, in s.
         duration = float(probe['format']['duration'])
@@ -83,8 +83,7 @@ def compress_video(video_full_path, output_file_name, target_size):
                 audio_bitrate = max_audio_bitrate
         # Target video bitrate, in bps.
         video_bitrate = target_total_bitrate - audio_bitrate
-
-        i = ffmpeg.input(video_full_path)
+        i = ffmpeg.input(video_full_path, nostdin=None)
         # ffmpeg.output(i, os.devnull,
         #               **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 1, 'f': 'mp4'}
         #               ).overwrite_output().run()
@@ -129,6 +128,7 @@ def download_and_compress_video(video_url: str, output_directory: str, target_si
                 filesize = os.path.getsize(filename)
                 # Если размер файла больше 50 мегабайт пытаемся перкодировать видео
                 if filesize > target_size:
+                #if filesize > 0:
                     new_filename1 = scale_width_video(filename, f'{filename}_tmp1')
                     # Удаляем исходный файл
                     try:
@@ -159,7 +159,7 @@ def download_and_compress_video(video_url: str, output_directory: str, target_si
                 new_filename = f'{new_filename}.mp4'
                 try:
                     # Удаляем файл старый если он существует
-                    os.remove(new_filename)
+                    #os.remove(new_filename)
                     pass
                 except:
                     pass

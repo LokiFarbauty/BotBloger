@@ -274,7 +274,7 @@ async def parsing(**_kwargs):
         else:
             delay = 1
             delay = random.randrange(start=30, stop=300)
-        delay=1
+        #delay=1
         if debug: parsers_loger.info(f'Выполнение задачи <{par_task.name}> начнётся через {delay/60} мин.')
         if not quick_start: await asyncio.sleep(delay)
         #
