@@ -24,6 +24,7 @@ from models.data.audio import Audio
 from models.data.docs import Doc
 from models.data.poll import Poll
 from models.data.photo import Photo
+from models.data.ol_twin_channel import TwinChannel
 from models.data.bot import Bot as BotModel
 from models.data.post_text_FTS import PostText
 from models.data_model import delete_post
@@ -213,13 +214,16 @@ def start_publicator_process(publicator: Publicator):
 
 
 
-async def public_post_to_channel(publicator: Publicator, post: Post, save_last_post_id = False):
+async def public_post_to_channel(publicator: Publicator, post: Post, save_last_post_id = False, twin_channel = None, def_post_lang = 'ru'):
     # Опубликовать пост в канале
     try:
         state = 'Подготовка к публикации'
         post_key = post.get_id()
         # Получаем id канала
-        channel_tg_id = publicator.channel.channel_tg_id
+        if twin_channel != None:
+            channel_tg_id = twin_channel.channel_tg_id
+        else:
+            channel_tg_id = publicator.channel.channel_tg_id
         # Получаем бота
         bot_obj = await get_BotExt(publicator.bot)
         if bot_obj == None:
@@ -303,6 +307,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             else:
                 post_text_preview = f'{post_text_preview}\n<b><a href="{tg_url}">Показать полностью</a></b>'
                 post.telegraph_url = tg_url
+                post.translation = def_post_lang
                 post.save()
             # Готовим картинку и видео (при наличии)
             if len(img_urls) == 0 and len(video_files) == 0 :
@@ -500,6 +505,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         dt = datetime.now()
         cr_dt = dt.replace(microsecond=0).timestamp()
         post.last_published_dt = cr_dt
+        post.translation = def_post_lang
         post.save()
         #
         return PublicateErrors.NoError
@@ -682,6 +688,16 @@ async def publicating(par_publicator: Publicator, debug=False):
                             if debug: publicators_loger.info(
                                 f'Публикатор {publicator.name}. Пост {post.get_id()} - критическая ошибка бота, публикатор остановлен. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
                             return
+                        # Публикуем в дублирующие каналы
+                        twins_channels = TwinChannel.get_twins_channels(publicator.channel)
+                        for twin_channel in twins_channels:
+                            try:
+                                # Выбираем язык
+                                post.translation = twin_channel.language
+                                # Размещаем
+                                res = await public_post_to_channel(publicator, post, twin_channel=twin_channel)
+                            except Exception as ex:
+                                pass
                         # Сохраняем дату публикации
                         dt = datetime.now()
                         cr_dt = dt.replace(microsecond=0).timestamp()
