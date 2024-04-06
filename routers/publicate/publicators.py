@@ -314,9 +314,9 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             elif len(img_urls) == 1 and len(video_files) == 1:
                 media = []
                 media.append(types.InputMediaPhoto(media=img_urls[0], caption=post_text_preview, parse_mode='HTML'))
-                media.append(types.InputMediaVideo(media=types.FSInputFile(video_files[0]), parse_mode='HTML'))
+                media.append(types.InputMediaVideo(media=types.FSInputFile(video_files[0]), supports_streaming=True, parse_mode='HTML'))
                 try:
-                    await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                    await bot_obj.send_media_group_ex(chat_id=channel_tg_id, media=media)  # Отправка фото
                 except:
                     pass
             elif len(img_urls) == 1 or len(video_files) == 1:
@@ -329,7 +329,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                     try:
                         #with open(video_files[0], 'rb') as video:
                         video = types.FSInputFile(video_files[0])
-                        await bot_obj.send_video(chat_id=channel_tg_id, video=video, caption=post_text_preview, parse_mode='HTML')
+                        await bot_obj.send_video(chat_id=channel_tg_id, video=video, caption=post_text_preview, parse_mode='HTML', supports_streaming=True)
                     except:
                         pass
             elif len(img_urls) > 1 or len(video_files) > 1:
@@ -343,16 +343,16 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                         media.append(types.InputMediaPhoto(media=el))
                 for video in video_files:
                     if first:
-                        media.append(types.InputMediaVideo(media=types.FSInputFile(video), caption=post_text_preview, parse_mode='HTML'))
+                        media.append(types.InputMediaVideo(media=types.FSInputFile(video), caption=post_text_preview, supports_streaming=True, parse_mode='HTML'))
                         first = False
                     else:
-                        media.append(types.InputMediaVideo(media=types.FSInputFile(video)))
+                        media.append(types.InputMediaVideo(media=types.FSInputFile(video), supports_streaming=True))
                 try:
                     media = media[:9]
                 except:
                     pass
                 try:
-                    await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                    await bot_obj.send_media_group_ex(chat_id=channel_tg_id, media=media)  # Отправка фото
                 except:
                     pass
         elif (post_text_len <= PostTextlen.Short.value):
@@ -377,9 +377,9 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             elif len(img_urls) == 1 and len(video_files) == 1:
                 media = []
                 media.append(types.InputMediaPhoto(media=img_urls[0], caption=post_text, parse_mode='HTML'))
-                media.append(types.InputMediaVideo(media=types.FSInputFile(video_files[0]), parse_mode='HTML'))
+                media.append(types.InputMediaVideo(media=types.FSInputFile(video_files[0]), supports_streaming=True, parse_mode='HTML'))
                 try:
-                    await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
+                    await bot_obj.send_media_group_ex(chat_id=channel_tg_id, media=media)  # Отправка фото
                 except:
                     pass
             elif len(img_urls) == 1 or len(video_files) == 1:
@@ -392,7 +392,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                     try:
                         video = types.FSInputFile(video_files[0])
                         await bot_obj.send_video(chat_id=channel_tg_id, video=video, caption=post_text,
-                                                 parse_mode='HTML')
+                                                 parse_mode='HTML', supports_streaming=True)
                     except Exception as ex:
                         pass
             elif len(img_urls) > 1 or len(video_files) > 1:
@@ -406,17 +406,17 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                         media.append(types.InputMediaPhoto(media=el))
                 for video in video_files:
                     if first:
-                        media.append(types.InputMediaVideo(media=types.FSInputFile(video), caption=post_text, parse_mode='HTML'))
+                        media.append(types.InputMediaVideo(media=types.FSInputFile(video), caption=post_text, supports_streaming=True, parse_mode='HTML'))
                         first = False
                     else:
-                        media.append(types.InputMediaVideo(media=types.FSInputFile(video)))
+                        media.append(types.InputMediaVideo(media=types.FSInputFile(video), supports_streaming=True))
                 try:
                     media = media[:9]
                 except:
                     pass
                 try:
-                    await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка фото
-                except:
+                    await bot_obj.send_media_group_ex(chat_id=channel_tg_id, media=media)  # Отправка фото
+                except Exception as ex:
                     pass
         else:
             pass
@@ -449,7 +449,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                     media.append(types.InputMediaDocument(media=el))
                 docs_str = f'{docs_str}<a href="{el}">Файл</a>\n'
             try:
-                await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка документов
+                await bot_obj.send_media_group_ex(chat_id=channel_tg_id, media=media)  # Отправка документов
             except:
                 try:
                     await bot_obj.send_message(chat_id=channel_tg_id, text=docs_str, parse_mode='HTML')
@@ -480,7 +480,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             for i, el in enumerate(audio_urls, 0):
                 media.append(types.InputMediaAudio(media=el, performer=audio_artists[i], title=audio_titles[i]))
             try:
-                await bot_obj.send_media_group(chat_id=channel_tg_id, media=media)  # Отправка audio
+                await bot_obj.send_media_group_ex(chat_id=channel_tg_id, media=media)  # Отправка audio
             except:
                 pass
         # Получаем и выкладываем опросы
@@ -555,8 +555,8 @@ async def get_random_posts(condition, old_posts=None):
 async def publicating(par_publicator: Publicator, debug=False):
     '''Поток публикатора, в котором он периодически получает из базы посты и публикует их в канал'''
     try:
-        if debug: publicators_loger.info(f'Публикатор {par_publicator.name} готов к старту. Задержка {par_publicator.delay} сек.')
-        await asyncio.sleep(int(par_publicator.delay))
+        if debug: publicators_loger.info(f'Публикатор {par_publicator.name} готов к старту. Задержка {par_publicator.start_delay} сек.')
+        await asyncio.sleep(int(par_publicator.start_delay))
         if debug: publicators_loger.info(f'Публикатор {par_publicator.name} запущен.')
     except:
         publicators_loger.error(f'Задержка публикатора {par_publicator.name} задана не правильно.')
@@ -707,7 +707,7 @@ async def publicating(par_publicator: Publicator, debug=False):
                         # пауза между публикациями
                         if debug: publicators_loger.info(
                             f'Публикатор {publicator.name}. Пауза между публикациями. Текущий час: {cur_time}. Период задержки {period} сек ({period / 60 / 60} часа).')
-                        await asyncio.sleep(3)
+                        await asyncio.sleep(publicator.public_delay)
                     except Exception as ex:
                         publicators_loger.error(f'Ошибка публикатора "{publicator.name}" при публикации поста {post.get_id()}: {ex}')
                 publicator.save()

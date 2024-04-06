@@ -43,6 +43,7 @@ class ParseTask(Model):
     last_post_id = IntegerField() # id последнего спарсеного поста (для ВК)
     filter = CharField(null=True) # фильтр (для ВК)
     options = TextField(null=True) # произвольные опции
+    def_lang = TextField(default='ru') # Язык поста по умолчанию
     cr_dt = DateTimeField() # дата создания задачи
     active = IntegerField(default=0)  # флаг автостарта (используется для автозапуска)
     start_parse_hour = IntegerField(default=0)  # время начала парсинга

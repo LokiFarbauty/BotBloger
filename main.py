@@ -88,7 +88,10 @@ async def service_task():
                 try:
                     shutil.rmtree(filepath)
                 except OSError:
-                    os.remove(filepath)
+                    try:
+                        os.remove(filepath)
+                    except:
+                        pass
         except Exception as ex:
             pass
         await asyncio.sleep(100000)

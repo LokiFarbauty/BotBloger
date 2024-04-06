@@ -27,7 +27,7 @@ def setup_logger(logger_name, log_file, level=logging.INFO, mode = 'w'):
     logger.addHandler(handler)
     return logger
 
-app_loger = setup_logger('AppLoger', f'{LOGS_PATH}\\log.log') # логер приложения
+app_loger = setup_logger('AppLoger', f'{LOGS_PATH}\\log.log', level=logging.ERROR) # логер приложения
 bots_loger = setup_logger('BotsLoger', f'{LOGS_PATH}\\bots.log') # логер ботов
 parsers_loger = setup_logger('ParsersLoger', f'{LOGS_PATH}\\parsers.log') # логер парсинга
 publicators_loger = setup_logger('PublicatorsLoger', f'{LOGS_PATH}\\publicators.log') # логер публикаторов

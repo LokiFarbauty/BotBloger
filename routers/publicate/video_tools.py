@@ -16,7 +16,7 @@ def get_video_duration(video_full_path):
         probe = ffmpeg.probe(video_full_path)
         duration = float(probe['format']['duration'])
         return duration
-    except:
+    except Exception as ex:
         return 0
 
 def scale_width_video(video_full_path: str, output_file_name: str, target_width = 480, frame_rate=24):
@@ -108,19 +108,22 @@ def download_and_compress_video(video_url: str, output_directory: str, target_si
         with redirect_stdout(open(os.devnull, "w")):
             #output_directory = f'{MAIN_PATH}\\downloads'
             #ydl_opts = {'outtmpl': f'{output_directory}\\%(title)s.%(ext)s'}
-            ydl_opts = {'outtmpl': f'{output_directory}\\%(title)s.%(ext)s'}
+            ydl_opts = {'outtmpl': f'{output_directory}\\%(id)s.%(ext)s'}
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                #ydl.download([video_url])
-                info = ydl.extract_info(video_url, download=True)
                 try:
-                    pass
+                    info = ydl.extract_info(video_url, download=True)
+                    filename = f"{output_directory}\\{info['id']}.{info['ext']}"
+                    # if not os.path.isfile(filename):
+                    #     ydl.download([video_url])
+                    # else:
+                    #     return filename
+                    # pass
                     # duration = info['duration']
                     # resolution = info['resolution']
                     # height = info['height']
                     # width = info['width']
                 except:
                     pass
-                filename = f"{output_directory}\\{info['title']}.{info['ext']}"
             # Определяем дляительность видео если больше 30 минут то выкладываем ссылкой
             duration = get_video_duration(filename)
             if duration != 0 and duration <= max_duration:
@@ -163,6 +166,11 @@ def download_and_compress_video(video_url: str, output_directory: str, target_si
                     pass
                 except:
                     pass
+                # try:
+                #     if os.path.isfile(new_filename):
+                #         os.remove(new_filename)
+                # except:
+                #     pass
                 os.rename(filename, new_filename)
                 return new_filename
             else:

@@ -14,6 +14,7 @@ from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 from aiogram.exceptions import TelegramBadRequest
 import enum
+import os
 
 # routers
 from routers.logers import bots_loger, app_loger
@@ -64,7 +65,32 @@ class BotExt(Bot):
         self.dispatcher = dispatcher
         setup_dialogs(self.dispatcher)
 
-
+    async def send_media_group_ex(self, **kwargs):
+        # Отправка медиагруппы с проверкой общего размера файлов (больше 50 Мб не отправляет, приходится отправлять по частям)
+        medias = kwargs['media']
+        media_groups = []
+        media_group = []
+        group_file_size = 0
+        index=0
+        last_index = 0
+        # Вычисляем общий размер файлов медиагруппы
+        for media in medias:
+            file_name = media.media.path
+            filesize = os.path.getsize(file_name)
+            group_file_size = group_file_size + filesize
+            if group_file_size < 50000000:
+                media_group.append(media)
+            else:
+                group_file_size = 0
+                media_groups.append(media_group)
+                media_group = []
+                media_group.append(media)
+        if len(media_group)>0:
+            media_groups.append(media_group)
+        for mg in media_groups:
+            kwargs['media'] = mg
+            answer = await self.send_media_group(**kwargs)
+        pass
 
     async def start_polling(self):
         # Запускаем прослушивание бота (так бота лучше не запускать используй start_polling_task)
