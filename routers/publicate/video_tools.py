@@ -2,6 +2,7 @@ import ffmpeg
 import yt_dlp
 import os
 import shutil
+import asyncio
 from contextlib import redirect_stdout
 
 
@@ -103,7 +104,7 @@ def compress_video(video_full_path, output_file_name, target_size):
         return output_file_name
 
 
-def download_and_compress_video(video_url: str, output_directory: str, target_size = 52000000, max_duration = 1800):
+async def download_and_compress_video(video_url: str, output_directory: str, target_size = 52000000, max_duration = 1800):
     try:
         with redirect_stdout(open(os.devnull, "w")):
             #output_directory = f'{MAIN_PATH}\\downloads'
@@ -124,6 +125,7 @@ def download_and_compress_video(video_url: str, output_directory: str, target_si
                     # width = info['width']
                 except:
                     pass
+            await asyncio.sleep(0.5)
             # Определяем дляительность видео если больше 30 минут то выкладываем ссылкой
             duration = get_video_duration(filename)
             if duration != 0 and duration <= max_duration:
@@ -133,6 +135,7 @@ def download_and_compress_video(video_url: str, output_directory: str, target_si
                 if filesize > target_size:
                 #if filesize > 0:
                     new_filename1 = scale_width_video(filename, f'{filename}_tmp1')
+                    await asyncio.sleep(0.5)
                     # Удаляем исходный файл
                     try:
                         os.remove(filename)
@@ -147,6 +150,7 @@ def download_and_compress_video(video_url: str, output_directory: str, target_si
                 filesize = os.path.getsize(filename)
                 if filesize > target_size:
                     new_filename2 = compress_video(filename, f'{filename}_tmp2', int(target_size / 1000))
+                    await asyncio.sleep(0.5)
                     try:
                         os.remove(filename)
                     except:

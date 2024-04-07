@@ -229,7 +229,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                     filename = ''
                 # Если его нет скачиваем видео
                 if filename == '':
-                    filename = download_and_compress_video(video.url,
+                    filename = await download_and_compress_video(video.url,
                                                        output_directory=main_config.DOWNLOADS_PATH,
                                                        target_size=51000000,
                                                        max_duration=1800)
