@@ -11,8 +11,10 @@ from models.data.poll import Poll
 from models.data.photo import Photo
 from models.data.post_text_FTS import PostText
 import models.data_model as data_model
+
 #
 from routers.logers import publicators_loger
+from routers.translation.translation import translate_text
 
 
 def get_url_name(text: str, prefix: str = ''):
@@ -89,15 +91,26 @@ async def put_post_to_telegraph(post: Post, telegraph_token, author_name='', aut
                     title = ''
         if title == '':
             title = 'Без названия'
+        if post.translation != 'ru':
+            title = translate_text(title, to_language=post.translation)
+        # Переводим текст
+        if post.translation != 'ru':
+            post_text = translate_text(post_text, to_language=post.translation)
         # Добавляем в текст линки
         links = Link.select().where(Link.owner == post)
         for link in links:
-            post_text = f'{post_text}\n<a href="{link.url}">{link.title}</a>'
+            link_title = link.title
+            if post.translation != 'ru':
+                link_title = translate_text(link_title, to_language=post.translation)
+            post_text = f'{post_text}\n<a href="{link.url}">{link_title}</a>'
         # Получаем картинки
         photos = Photo.select().where(Photo.owner == post)
         photo_urls = ''
         for photo in photos:
-            photo_urls = f'{photo_urls}<img src="{photo.url}" alt="{photo.caption}">'
+            photo_caption = photo.caption
+            if post.translation != 'ru':
+                photo_caption = translate_text(photo_caption, to_language=post.translation)
+            photo_urls = f'{photo_urls}<img src="{photo.url}" alt="{photo_caption}">'
         post_text = f'{photo_urls}\n{post_text}'
         # Порлучаем видео
         videos = Video.select().where(Video.owner == post)
@@ -107,12 +120,17 @@ async def put_post_to_telegraph(post: Post, telegraph_token, author_name='', aut
             if video.url.find('youtube') != -1:
                 video_urls = f'{video_urls}\n<figure><iframe src="/embed/youtube?url={video.url}"></iframe></figure>'
             else:
-                if video.title != '':
-                    video_urls = f'{video_urls}\n<a href="{video.url}">{video.title}</a>'
-                else:
-                    video_urls = f'{video_urls}\n<a href="{video.url}">Видео 🎥</a>'
+                video_title = video.title
+                if video_title == '':
+                    video_title = 'Видео 🎥'
+                if post.translation != 'ru':
+                    video_title = translate_text(video_title, to_language=post.translation)
+                video_urls = f'{video_urls}\n<a href="{video.url}">{video_title}</a>'
         if video_urls != '':
-            video_urls = f'<b>Смотреть видео:</b>\n{video_urls}'
+            video_spoiler = 'Смотреть видео:'
+            if post.translation != 'ru':
+                video_spoiler = translate_text(video_spoiler, to_language=post.translation)
+            video_urls = f'<b>{video_spoiler}</b>\n{video_urls}'
         post_text = f'{post_text}\n{video_urls}'
         # Форматируем текст
         post_text = f'{post_text}\n{author_caption}'

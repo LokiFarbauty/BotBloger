@@ -16,6 +16,7 @@ from models.data.docs import Doc
 from models.data_model import delete_post
 #
 from routers.logers import bots_loger
+from routers.publicate.publicators import PostTextlen
 #
 from datetime import datetime
 from dataclasses import dataclass
@@ -27,24 +28,33 @@ class PostDesc:
     POST_EXIST: bool = False
 
 async def get_post_desc(post: Post, post_text: str, offset: int, user: User, posts_count = 0, debug=False) -> PostDesc:
+    # Обределяем указатели ограничения
+    post_remarks = ''
+    if len(post_text) > PostTextlen.Short.value:
+        post_remarks = f'{post_remarks}📵 '
     # Получаем видео
     videos = Video.select().where(Video.owner == post)
     for video in videos:
+        post_remarks = f'{post_remarks}🎥 '
         if video.duration >= 1800:
+            post_remarks = f'{post_remarks}🚫🎥 '
             post_text = f'{post_text}\n🎞 {video.title}\n{video.url}\n(❗️ Видео длинее 30 минут, оно будет выложенно ссылкой).'
         elif video.duration == 0:
             post_text = f'{post_text}\n🎞 {video.title}\n{video.url}\n(❗️ Длинна видео не определена, возможно оно будет выложенно ссылкой).'
+            post_remarks = f'{post_remarks}❓🎥 '
         else:
             post_text = f'{post_text}\n🎞 {video.title}\n{video.url}'
     # Получаем ссылки
     links = Link.select().where(Link.owner == post)
     for link in links:
+        post_remarks = f'{post_remarks}🔗 '
         post_text = f'{post_text}\n🔗 {link.title}\n{link.url}'
     # Получаем опросы
     polls = Poll.select().where(Poll.owner == post)
     first = True
     for poll in polls:
         if first:
+            post_remarks = f'{post_remarks}🗳 '
             post_text = f'{post_text}\n'
             first = not first
         answers = poll.answers.split('|| ')
@@ -57,12 +67,14 @@ async def get_post_desc(post: Post, post_text: str, offset: int, user: User, pos
     first = True
     for audio in audios:
         if first:
+            post_remarks = f'{post_remarks}📻 '
             post_text = f'{post_text}\n'
             first = not first
         post_text = f'{post_text}\n🎵{audio.artist}-{audio.title}'
     # Получаем ссылки
     docs = Doc.select().where(Doc.owner == post)
     for doc in docs:
+        post_remarks = f'{post_remarks}📁 '
         post_text = f'{post_text}\n📁 {doc.url}'
     #
     dt = post.dt
@@ -74,6 +86,9 @@ async def get_post_desc(post: Post, post_text: str, offset: int, user: User, pos
         post_desc = f'Программа: <b>"{program_name}"</b>. Источник: <b>"{task_name}"</b>. id: <b>{post_id}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. Рейтинг: <b>{post.likes*100//post.old_views}%</b>. {offset+1} из <b>{posts_count}</b>.\n'
     else:
         post_desc = f'Программа: <b>{program_name}</b>. Источник: <b>{task_name}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. Рейтинг: <b>{post.likes*100//post.old_views}%</b>. {offset+1} из <b>{posts_count}</b>.\n'
+    post_remarks = post_remarks.strip()
+    if post_remarks != '':
+        post_desc = f'{post_desc}<b>Замечания:</b> {post_remarks}.\n'
     post_exist = True
     res = PostDesc(POST_TEXT=post_text, POST_DESC=post_desc, POST_EXIST=post_exist)
     return res

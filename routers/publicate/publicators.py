@@ -6,9 +6,9 @@ from math import ceil
 from aiogram import types
 from datetime import datetime
 from peewee import fn
-import translators as ts
 import yt_dlp
 import main_config
+import os
 
 
 
@@ -35,6 +35,7 @@ from routers.logers import publicators_loger, app_loger
 from routers.publicate.telegraph_tools import put_post_to_telegraph
 from routers.parsing.analyzer import check_text
 from routers.publicate.video_tools import download_and_compress_video
+from routers.translation.translation import translate_text
 
 
 # class TGPublicator():
@@ -240,7 +241,7 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         # Переводим текст
         try:
             if post.translation != 'ru':
-                post_text = ts.translate_text(post_text, to_language=post.translation)
+                post_text = translate_text(post_text, to_language=post.translation)
         except Exception as ex:
             publicators_loger.warning(f'Не удалось перевести текст {post_index} на язык {post.translation}. Ошибка: {ex}')
         # if publicator.criterion.check_mat == 1:
@@ -255,6 +256,8 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             img_urls.append(img_mld.url)
             if img_caption=='' and img_mld.caption != '':
                 img_caption = img_mld.caption
+                if post.translation != 'ru':
+                    img_caption = translate_text(img_caption, to_language=post.translation)
         if len(img_urls)>10:
             img_urls = img_urls[:9]
         # Добавляем в текст линки и ссылки на видео
@@ -262,22 +265,41 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         video_files = []
         for video in videos:
             try:
-                # Скачиваем видео
-                filename = download_and_compress_video(video.url,
+                # Проверяем наличие файла видео
+                try:
+                    filename = ''
+                    if os.path.exists(video.file):
+                        filename = video.file
+                except:
+                    filename = ''
+                # Если его нет скачиваем видео
+                if filename == '':
+                    filename = download_and_compress_video(video.url,
                                                        output_directory=main_config.DOWNLOADS_PATH,
                                                        target_size=51000000,
                                                        max_duration=1800)
                 if filename != '':
                     # Выкладываем видео
                     video_files.append(filename)
+                    video.file = filename
+                    try:
+                        video.save()
+                    except:
+                        pass
                 else:
                     raise ValueError("Выкладываем видео ссылкой")
                 #
             except:
-                post_text = f'{post_text}\n<a href="{video.url}">{video.title}</a>'
+                videotitle = video.title
+                if post.translation != 'ru':
+                    videotitle = translate_text(videotitle, to_language=post.translation)
+                post_text = f'{post_text}\n<a href="{video.url}">{videotitle}</a>'
         links = Link.select().where(Link.owner == post)
         for link in links:
-            post_text = f'{post_text}\n<a href="{link.url}">{link.title}</a>'
+            linktitle=link.title
+            if post.translation != 'ru':
+                linktitle = translate_text(linktitle, to_language=post.translation)
+            post_text = f'{post_text}\n<a href="{link.url}">{linktitle}</a>'
         # Если нет текста, но есть картинка, берем текст из описания картинки
         if post_text == '':
             post_text = img_caption
@@ -293,8 +315,10 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             # Формируем страничку в телеграфе
             # Ищем создавалась ли страница в телеграфе ранее
             tg_url = post.telegraph_url
-            if tg_url == '' or tg_url == None:
+            if tg_url == '' or tg_url == None or twin_channel != None:
                 author_caption = publicator.author_caption
+                if post.translation != 'ru':
+                    author_caption = translate_text(author_caption, to_language=post.translation)
                 tg_url = await put_post_to_telegraph(post, telegraph_token=publicator.telegraph_token,
                                                      author_caption=author_caption, author_name=publicator.author_name,
                                                      author_url=publicator.author_url)
@@ -305,7 +329,10 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                 # Создать страничку в телеграфе не удалось
                 return PublicateErrors.TGPHError
             else:
-                post_text_preview = f'{post_text_preview}\n<b><a href="{tg_url}">Показать полностью</a></b>'
+                spoiler_text = "Показать полностью"
+                if post.translation != 'ru':
+                    spoiler_text = translate_text(spoiler_text, to_language=post.translation)
+                post_text_preview = f'{post_text_preview}\n<b><a href="{tg_url}">{spoiler_text}</a></b>'
                 post.telegraph_url = tg_url
                 post.translation = def_post_lang
                 post.save()
@@ -366,7 +393,10 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
             # Добовляем авторскую подпись
             try:
                 if publicator.author_caption != None:
-                    sum_len = post_text_len + len(publicator.author_caption)
+                    author_caption = publicator.author_caption
+                    if post.translation != 'ru':
+                        author_caption = translate_text(author_caption, to_language=post.translation)
+                    sum_len = post_text_len + len(author_caption)
                     if sum_len < 1023:
                         #post_text = f'{post_text}\n{publicator.author_caption}'
                         pass
@@ -439,7 +469,10 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                 await bot_obj.send_document(chat_id=channel_tg_id, document=doc_urls[0], caption='👆', parse_mode='HTML')
             except:
                 try:
-                    await bot_obj.send_message(chat_id=channel_tg_id, text=f'<a href="{doc_urls[0]}">Файл</a>', parse_mode='HTML')
+                    file_spoiler = 'Файл'
+                    if post.translation != 'ru':
+                        file_spoiler = translate_text(file_spoiler, to_language=post.translation)
+                    await bot_obj.send_message(chat_id=channel_tg_id, text=f'<a href="{doc_urls[0]}">{file_spoiler}</a>', parse_mode='HTML')
                 except Exception as ex:
                     publicators_loger.error(f'Не получилось выложить ссылку на документ "{doc_urls[0]}". Ошибка: {ex}')
         elif len(doc_urls) > 1:
@@ -452,7 +485,10 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
                 else:
                     first = False
                     media.append(types.InputMediaDocument(media=el))
-                docs_str = f'{docs_str}<a href="{el}">Файл</a>\n'
+                file_spoiler = 'Файл'
+                if post.translation != 'ru':
+                    file_spoiler = translate_text(file_spoiler, to_language=post.translation)
+                docs_str = f'{docs_str}<a href="{el}">{file_spoiler}</a>\n'
             try:
                 await bot_obj.send_media_group_ex(chat_id=channel_tg_id, media=media)  # Отправка документов
             except:
@@ -469,8 +505,14 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         for audio_mld in audio_mlds:
             if audio_mld.url != '':
                 audio_urls.append(audio_mld.url)
-                audio_titles.append(audio_mld.title)
-                audio_artists.append(audio_mld.artist)
+                audio_mld_title = audio_mld.title
+                if post.translation != 'ru':
+                    audio_mld_title = translate_text(audio_mld_title, to_language=post.translation)
+                audio_titles.append(audio_mld_title)
+                audio_mld_artist = audio_mld.artist
+                if post.translation != 'ru':
+                    audio_mld_artist = translate_text(audio_mld_artist, to_language=post.translation)
+                audio_artists.append(audio_mld_artist)
         if len(audio_urls) > 10:
             audio_urls = audio_urls[:9]
         if len(audio_urls) == 1:
@@ -492,9 +534,15 @@ async def public_post_to_channel(publicator: Publicator, post: Post, save_last_p
         state = 'Размещение опроса'
         poll_mlds = Poll.select().where(Poll.owner == post)
         for poll_mld in poll_mlds:
-            options = poll_mld.answers.split('||')
+            poll_mld_answers = poll_mld.answers
+            if post.translation != 'ru':
+                poll_mld_answers = translate_text(poll_mld_answers, to_language=post.translation)
+            options = poll_mld_answers.split('||')
             try:
-                await bot_obj.send_poll(chat_id=channel_tg_id, question=poll_mld.question, options=options)  # Отправка опросов
+                poll_mld_question = poll_mld.question
+                if post.translation != 'ru':
+                    poll_mld_question = translate_text(poll_mld_question, to_language=post.translation)
+                await bot_obj.send_poll(chat_id=channel_tg_id, question=poll_mld_question, options=options)  # Отправка опросов
             except:
                 pass
         # Сохраняем статус публикатора
