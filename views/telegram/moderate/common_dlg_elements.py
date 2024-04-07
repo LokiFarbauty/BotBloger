@@ -16,7 +16,7 @@ from models.data.docs import Doc
 from models.data_model import delete_post
 #
 from routers.logers import bots_loger
-from routers.publicate.publicators import PostTextlen
+from routers.publicate.enums import *
 #
 from datetime import datetime
 from dataclasses import dataclass

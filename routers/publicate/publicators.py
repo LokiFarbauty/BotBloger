@@ -1,7 +1,6 @@
 '''Модуль отвечает за публикацию сообщений в телеграмме'''
 
 import asyncio
-import enum
 from math import ceil
 from aiogram import types
 from datetime import datetime
@@ -36,6 +35,7 @@ from routers.publicate.telegraph_tools import put_post_to_telegraph
 from routers.parsing.analyzer import check_text
 from routers.publicate.video_tools import download_and_compress_video
 from routers.translation.translation import translate_text
+from routers.publicate.enums import *
 
 
 # class TGPublicator():
@@ -51,52 +51,7 @@ from routers.translation.translation import translate_text
 
 current_publicators_process = [] # Работающие в текущий момент публикаторы
 
-class PublicateErrors(enum.Enum):
-    NoError = 'опубликовано без ошибок'
-    BotError = 'ошибка бота'
-    MatError = 'в посте обнаружены запрещенные слова, он не опубликован'
-    TGPHError = 'не удалось опубликовать пост в Телеграф'
-    OtherError = 'неизвестная ошибка, смотрите логи'
 
-class PBTaskStatus(enum.Enum):
-    Done = 'выполнена'
-    Cancelled = 'остановлена'
-    Active = 'выполняется'
-    NotFound = 'не найдена'
-
-class PostTextlen(enum.Enum):
-    Short = 950 # длинна текста до 1000 символов
-    Medium = 2500
-    Long = 4000
-
-class PostVideos(enum.Enum):
-    No = 0
-    Single = 1
-    Seria = 2
-
-class PostAudios(enum.Enum):
-    No = 0
-    Single = 1
-    Seria = 2
-
-class PostLinks(enum.Enum):
-    No = 0
-    Single = 1
-    Seria = 2
-
-class PostDocs(enum.Enum):
-    No = 0
-    Single = 1
-    Seria = 2
-
-class PostPolls(enum.Enum):
-    No = 0
-    Single = 1
-
-class PostImgs(enum.Enum):
-    No = 0
-    Single = 1
-    Seria = 2
 
 
 def check_mat_in_text(text: str):

@@ -13,8 +13,8 @@ from aiogram_dialog.widgets.media import StaticMedia
 from aiogram_dialog.widgets.text import Const, Format, Multi, ScrollingText
 # routers
 from routers.logers import bots_loger
-from routers.parsing.parsers_dispatсher import parsers_dispatcher
-import routers.bots.telegram.bots as bots_unit
+#from routers.parsing.parsers_dispatсher import parsers_dispatcher
+#import routers.bots.telegram.bots as bots_unit
 # views
 import views.telegram.moderate.lexicon as lexicon
 # models
