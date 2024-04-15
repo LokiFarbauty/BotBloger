@@ -838,7 +838,7 @@ async def add_post_img(post_id: int, url: str, caption = ''):
         post_obj = Post.get_by_id(post_id)
         img_obj = Photo.create(owner=post_obj, url=url, caption=caption)
         img_obj.save()
-        return f'Текст создан. ID: {img_obj.get_id()}'
+        return f'Изображение добавлено. ID: {img_obj.get_id()}'
     except Exception as ex:
         return f'Ошибка: {ex}'
 
