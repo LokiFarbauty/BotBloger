@@ -46,17 +46,33 @@ async def console(args):
                 command = inp
                 args=[]
             else:
+                # Есть параметры
+                #  Проверяем на кавычки
                 args = []
                 command = inp[:n]
                 command = command.lower()
                 pars = inp[n + 2:]
-                args0=pars.split(',')
-                for el in args0:
-                    try:
-                        int_el = int(el)
-                        args.append(int_el)
-                    except:
-                        args.append(el.strip())
+                for j in range(1,1000):
+                    q_pos_s = pars.find("'")
+                    q_pos_e = pars.find("'", q_pos_s+1)
+                    if q_pos_s == -1 or q_pos_e == -1:
+                        break
+                    else:
+                        par1 = pars[q_pos_s+1:q_pos_e]
+                        par1_0 = f"'{par1}',"
+                        par1_1 = f"'{par1}'"
+                        pars = pars.replace(par1_0, '')
+                        pars = pars.replace(par1_1, '')
+                    args.append(par1.strip())
+                #
+                if pars != '':
+                    args0=pars.split(',')
+                    for el in args0:
+                        try:
+                            int_el = int(el)
+                            args.append(int_el)
+                        except:
+                            args.append(el.strip())
             command = command.strip()
             if command=='exit':
                 os._exit(0)

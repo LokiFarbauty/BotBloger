@@ -9,6 +9,7 @@ from models.saver import save_posts
 from models.data.parse_task import ParseTask
 from models.data.post import Post
 from models.data.publicator import Publicator
+from models.data.post_text_FTS import PostText
 #
 from routers.logers import app_loger
 from routers.parsing.parsing import parsing
@@ -23,6 +24,7 @@ from main_config import MAIN_PATH
 import translators as ts
 import os
 from contextlib import redirect_stdout
+
 
 
 commands = []
@@ -286,3 +288,4 @@ async def translate_text(text: str, lang: str = 'en'):
 commands.append(
      Command(name='translate_text', func=translate_text, args_num=1, help='Перевести текст. Параметры: 1 - текст, 2 - язык (необязательно)')
 )
+

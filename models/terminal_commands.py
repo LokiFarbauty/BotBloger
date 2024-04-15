@@ -1,6 +1,7 @@
 '''Команды для терминала, он заберает их отсюда'''
 # py1
 from datetime import datetime
+import hashlib
 
 # models
 from models.data.bot import Bot, BotStates
@@ -771,4 +772,45 @@ async def clear_posts_in_db():
 commands.append(
      Command(name='clear_posts_in_db', func=clear_posts_in_db, args_num=0, help="Удалить все посты из базы."
                                                               " Параметры: нет")
+)
+
+async def create_text(text: str):
+    try:
+        text_obj = PostText.create(text=text)
+        return f'Текст создан. ID: {text_obj.get_id()}'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='create_text', func=create_text, args_num=1, help='Создать текст (дял связи с постом). Вернет id созданного текста. Параметры: 1 - текст')
+)
+
+async def create_post(text_id: int, parse_task: int, parse_program: int, moderate = 1, translation= 'ru'):
+    try:
+        cr_dt = datetime.now()
+        dt = cr_dt.replace(microsecond=0).timestamp()
+        # Получаем текст
+        post_text_mld = PostText.get_by_id(text_id)
+        post_text = post_text_mld.text
+        # Хэширукем текст
+        hash = hashlib.md5(post_text.encode('utf-8'))
+        text_hash = hash.hexdigest()
+        # Создание странички в телеграфе (при длинном тексте)
+        tg_url = ''
+        # оздаем пост
+        post_obj = Post.create(post_id=0, source_id=0, text=text_id, views=0,
+                               old_views=0, likes=0, dt=dt,
+                               telegraph_url=tg_url, text_hash=text_hash, parse_task=parse_task,
+                               parse_program=parse_program,
+                               moderate=moderate, last_published_dt=0, text_len=len(post_text), rate=0, translation=translation)
+        post_obj.save()
+        return f'Пост создан. ID: {post_obj.get_id()}'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='create_post', func=create_post, args_num=3, help='Создать пост. Вернет id созданного поста. Параметры: '
+                                                                    '1 - id текста, 2 - id задачи парсинга, 3 - id программы парсинга, '
+                                                                    '4 - флаг состояния (по умолчанию = 1 (на модерации)),'
+                                                                    '5 - язык (по умолчанию = ru (русский))')
 )
