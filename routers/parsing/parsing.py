@@ -270,7 +270,7 @@ async def parsing(**_kwargs):
         parser = _kwargs['parser']
         # Ждем немного
         if par_task.moderated == 0:
-            delay = random.randrange(start=120, stop=3600)
+            delay = random.randrange(start=320, stop=3600)
         else:
             delay = 1
             delay = random.randrange(start=30, stop=300)
