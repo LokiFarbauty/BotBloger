@@ -777,6 +777,7 @@ commands.append(
 async def create_text(text: str):
     try:
         text_obj = PostText.create(text=text)
+        text_obj.save()
         return f'Текст создан. ID: {text_obj.get_id()}'
     except Exception as ex:
         return f'Ошибка: {ex}'
@@ -813,4 +814,18 @@ commands.append(
                                                                     '1 - id текста, 2 - id задачи парсинга, 3 - id программы парсинга, '
                                                                     '4 - флаг состояния (по умолчанию = 1 (на модерации)),'
                                                                     '5 - язык (по умолчанию = ru (русский))')
+)
+
+async def add_post_img(post_id: int, url: str, caption = ''):
+    try:
+        post_obj = Post.get_by_id(post_id)
+        img_obj = Photo.create(owner=post_obj, url=url, caption=caption)
+        img_obj.save()
+        return f'Текст создан. ID: {img_obj.get_id()}'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='add_post_img', func=add_post_img, args_num=2, help='Добавить в пост картинку. Вернет id добавленной картинки. '
+                                                                      'Параметры: 1 - id поста, 2 - ссылка на картинку, 3 - надпись к картинке (необязательно)')
 )
