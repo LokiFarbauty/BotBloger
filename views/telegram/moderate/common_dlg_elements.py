@@ -81,11 +81,15 @@ async def get_post_desc(post: Post, post_text: str, offset: int, user: User, pos
     dt = datetime.fromtimestamp(dt).strftime('%d.%m.%Y %H:%M')
     program_name = post.parse_program.name
     task_name = post.parse_task.name
+    try:
+        ratio = post.likes * 100 // post.old_views
+    except:
+        ratio = 0
     if debug:
         post_id = post.get_id()
-        post_desc = f'Программа: <b>"{program_name}"</b>. Источник: <b>"{task_name}"</b>. id: <b>{post_id}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. Рейтинг: <b>{post.likes*100//post.old_views}%</b>. {offset+1} из <b>{posts_count}</b>.\n'
+        post_desc = f'Программа: <b>"{program_name}"</b>. Источник: <b>"{task_name}"</b>. id: <b>{post_id}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. Рейтинг: <b>{ratio}%</b>. {offset+1} из <b>{posts_count}</b>.\n'
     else:
-        post_desc = f'Программа: <b>{program_name}</b>. Источник: <b>{task_name}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. Рейтинг: <b>{post.likes*100//post.old_views}%</b>. {offset+1} из <b>{posts_count}</b>.\n'
+        post_desc = f'Программа: <b>{program_name}</b>. Источник: <b>{task_name}</b>. Опубликовано: <b>{dt}</b>. Просмотров: <b>{post.old_views}</b>. Лайков: <b>{post.likes}</b>. Рейтинг: <b>{ratio}%</b>. {offset+1} из <b>{posts_count}</b>.\n'
     post_remarks = post_remarks.strip()
     if post_remarks != '':
         post_desc = f'{post_desc}<b>Замечания:</b> {post_remarks}.\n'
