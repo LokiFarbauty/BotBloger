@@ -2,6 +2,7 @@
 # py1
 from datetime import datetime
 import hashlib
+import pyperclip3
 
 # models
 from models.data.bot import Bot, BotStates
@@ -776,6 +777,8 @@ commands.append(
 
 async def create_text(text: str):
     try:
+        if text == 'clip':
+            text = pyperclip3.paste()
         text_obj = PostText.create(text=text)
         text_obj.save()
         return f'Текст создан. ID: {text_obj.get_id()}'
@@ -783,7 +786,19 @@ async def create_text(text: str):
         return f'Ошибка: {ex}'
 
 commands.append(
-     Command(name='create_text', func=create_text, args_num=1, help='Создать текст (дял связи с постом). Вернет id созданного текста. Параметры: 1 - текст')
+     Command(name='create_text', func=create_text, args_num=1, help='Создать текст (дял связи с постом). Вернет id созданного текста. Параметры: 1 - текст. Для вставки текста из буффера передайте в параметр "clip"')
+)
+
+async def show_text(text_id: int):
+    try:
+        post_text_mld = PostText.get_by_id(text_id)
+        post_text = post_text_mld.text
+        return f'{post_text}'
+    except Exception as ex:
+        return f'Ошибка: {ex}'
+
+commands.append(
+     Command(name='show_text', func=show_text, args_num=1, help='Посмотреть текст по id. Вернет текст. Параметры: 1 - ID текста')
 )
 
 async def create_post(text_id: int, parse_task: int, parse_program: int, moderate = 1, translation= 'ru'):
