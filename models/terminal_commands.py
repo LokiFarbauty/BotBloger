@@ -2,7 +2,7 @@
 # py1
 from datetime import datetime
 import hashlib
-import pyperclip3
+from tkinter import Tk
 
 # models
 from models.data.bot import Bot, BotStates
@@ -778,7 +778,9 @@ commands.append(
 async def create_text(text: str):
     try:
         if text == 'clip':
-            text = pyperclip3.paste()
+            a = Tk()
+            text = a.clipboard_get()
+            a.destroy()
         text_obj = PostText.create(text=text)
         text_obj.save()
         return f'Текст создан. ID: {text_obj.get_id()}'
